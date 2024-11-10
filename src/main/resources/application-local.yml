@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST_LOCAL}:${MYSQL_PORT_LOCAL}/${MYSQL_DB_LOCAL}
+    username: ${MYSQL_USER_LOCAL}
+    password: ${MYSQL_PASSWORD_LOCAL}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  web:
+    resources:
+      add-mappings: false
+  data:
+    mongodb:
+      uri: ${MONGODB_URI_LOCAL}
+
+jwt:
+  secretKey: ${JWT_SECRET_KEY}
+  access:
+    expiration: ${JWT_ACCESS_EXPIRATION}
+    header: Authorization
+  refresh:
+    expiration: ${JWT_REFRESH_EXPIRATION}
+    header: Authorization-refresh
