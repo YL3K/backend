@@ -11,7 +11,9 @@ import com.google.gson.JsonParser;
 import com.yl3k.kbsf.global.openai.service.OpenAiService;
 import com.yl3k.kbsf.global.response.error.ApplicationError;
 import com.yl3k.kbsf.global.response.exception.ApplicationException;
+import com.yl3k.kbsf.stt.collection.FullText;
 import com.yl3k.kbsf.stt.dto.SttResponse;
+import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -37,6 +39,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SttService {
 
+    private final FullTextRepository fullTextRepository;
+
     private final OpenAiService openAiService;
 
     private final AmazonS3Client amazonS3Client;
@@ -52,15 +56,16 @@ public class SttService {
 
     private final Gson gson = new Gson();
 
-    public SttResponse speechToText(MultipartFile file) {
+    public SttResponse speechToText(MultipartFile file, Long roomId) {
 
         String uploadFileName = uploadFile(file);
-        String response = executeStt(uploadFileName);
+        String text = executeStt(uploadFileName);
+        insertFullText(roomId, text);
 
-        return SttResponse.builder().text(response).build();
+        return SttResponse.builder().text(text).build();
     }
 
-    public String uploadFile(MultipartFile file) {
+    private String uploadFile(MultipartFile file) {
 
         String originalFileName = file.getOriginalFilename();
         if (originalFileName == null) {
@@ -105,6 +110,19 @@ public class SttService {
             return formatSttResponse(EntityUtils.toString(httpResponse.getEntity(), StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new ApplicationException(ApplicationError.STT_ERROR);
+        }
+    }
+
+    private void insertFullText(Long roomId, String text) {
+
+        try {
+            FullText fullText = FullText.builder()
+                    .roomId(roomId)
+                    .fullText(text)
+                    .build();
+            fullTextRepository.insert(fullText);
+        } catch (Exception e) {
+            throw new ApplicationException(ApplicationError.MONGO_INSERT_ERROR);
         }
     }
 
