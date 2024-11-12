@@ -1,5 +1,7 @@
 package com.yl3k.kbsf.summary.service;
 
+import com.yl3k.kbsf.counsel.entity.CounselRoom;
+import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.global.openai.service.OpenAiService;
 import com.yl3k.kbsf.summary.dto.SummaryRequestDTO;
 import com.yl3k.kbsf.summary.dto.SummaryResponseDTO;
@@ -19,8 +21,12 @@ public class SummaryService {
 
     private final SummaryRepository summaryRepository;
     private final OpenAiService openAiService;
+    private final CounselRoomRepository counselRoomRepository;
 
     public SummaryResponseDTO createSummary(SummaryRequestDTO request){
+        CounselRoom counselRoom = counselRoomRepository.findById(request.getRoomId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid room ID: " + request.getRoomId()));
+
         //요약 생성 - OpenAI API
         String prompt = "다음 대화를 요약해줘.\n"
                 + "1. 한 줄로 요약. 제목느낌으로 명사형 요약\n"
@@ -41,6 +47,7 @@ public class SummaryService {
 
         //Summary 엔티티 저장
         Summary summary = Summary.builder()
+                .counselRoom(counselRoom)
                 .summaryText(summaryText)
                 .summaryShort(summaryShort)
                 .build();
