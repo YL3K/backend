@@ -42,7 +42,7 @@ public class SttService {
     private final AmazonS3Client amazonS3Client;
 
     @Value("${ncloud.objectStorage.bucket}")
-    private String bucketName;
+    private String BUCKET;
 
     @Value("${ncloud.clovaSpeech.secretKey}")
     private String SECRET_KEY;
@@ -54,30 +54,32 @@ public class SttService {
 
     public SttResponse speechToText(MultipartFile file) {
 
-        String originalFileName = file.getOriginalFilename();
-        if (originalFileName == null) {
-            throw new ApplicationException(ApplicationError.FILE_NAME_NULL);
-        }
-
-        String uploadFileName = getUuidFileName(originalFileName);
-        uploadFile(file, uploadFileName);
+        String uploadFileName = uploadFile(file);
         String response = executeStt(uploadFileName);
 
         return SttResponse.builder().text(response).build();
     }
 
-    private void uploadFile(MultipartFile file, String originalFileName) {
+    public String uploadFile(MultipartFile file) {
+
+        String originalFileName = file.getOriginalFilename();
+        if (originalFileName == null) {
+            throw new ApplicationException(ApplicationError.FILE_NAME_NULL);
+        }
+        String uploadFileName = getUuidFileName(originalFileName);
 
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(file.getSize());
         metadata.setContentType(file.getContentType());
 
         try (InputStream inputStream = file.getInputStream()) {
-            amazonS3Client.putObject(new PutObjectRequest(bucketName, originalFileName, inputStream, metadata)
+            amazonS3Client.putObject(new PutObjectRequest(BUCKET, uploadFileName, inputStream, metadata)
                     .withCannedAcl(CannedAccessControlList.PublicRead));
         } catch (Exception e) {
             throw new ApplicationException(ApplicationError.FILE_UPLOAD_ERROR);
         }
+
+        return uploadFileName;
     }
 
     private String executeStt(String dataKey) {
@@ -106,7 +108,7 @@ public class SttService {
         }
     }
 
-    public String formatSttResponse(String jsonResponse) {
+    private String formatSttResponse(String jsonResponse) {
 
         StringBuilder formattedConversation = new StringBuilder();
 
@@ -128,13 +130,13 @@ public class SttService {
         return formattedConversation.toString().trim();
     }
 
-    public String getUuidFileName(String fileName) {
+    private String getUuidFileName(String fileName) {
 
         String ext = fileName.substring(fileName.indexOf(".") + 1);
         return UUID.randomUUID() + "." + ext;
     }
 
-    public String getSpeakerRoles(JsonArray segments) {
+    private String getSpeakerRoles(JsonArray segments) {
 
         if (segments.size() < 2) {
             throw new ApplicationException(ApplicationError.INSUFFICIENT_SEGMENTS);
@@ -154,7 +156,7 @@ public class SttService {
         return openAiService.askOpenAi(question);
     }
 
-    public Map<String, String> makeSpeakerMap(JsonArray speakers, String roles) {
+    private Map<String, String> makeSpeakerMap(JsonArray speakers, String roles) {
 
         Map<String, String> speakerRoleMap = new HashMap<>();
         try {
