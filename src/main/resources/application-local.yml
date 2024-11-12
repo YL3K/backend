@@ -15,6 +15,10 @@ spring:
     mongodb:
       uri: ${MONGODB_URI_LOCAL}
       database: ${MONGODB_DATABASE}
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 30MB
 
 jwt:
   secretKey: ${JWT_SECRET_KEY}
