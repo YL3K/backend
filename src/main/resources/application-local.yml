@@ -23,3 +23,7 @@ jwt:
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION}
     header: Authorization-refresh
+
+openai:
+  key: ${OPENAI_KEY}
+  model: ${OPENAI_MODEL}
