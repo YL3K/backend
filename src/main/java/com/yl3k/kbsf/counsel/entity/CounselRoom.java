@@ -25,6 +25,8 @@ public class CounselRoom {
     @CreationTimestamp
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    private LocalDateTime startedAt;
+
     private LocalDateTime closedAt;
 
     @ColumnDefault("false")
