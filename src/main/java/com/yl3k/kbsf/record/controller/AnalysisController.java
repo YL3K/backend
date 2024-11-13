@@ -2,10 +2,12 @@ package com.yl3k.kbsf.record.controller;
 
 import com.yl3k.kbsf.record.service.AnalysisService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -50,5 +52,22 @@ public class AnalysisController {
 
         Map<String, Long> countsByInterval = analysisService.getConsultationCountBy30MinRange(startDateTime, endDateTime);
         return ResponseEntity.ok(countsByInterval);
+    }
+
+    @GetMapping("/runtime")
+    public ResponseEntity<Duration> getAverageConsultationTime(){
+        Duration totalDuration = analysisService.getAverageConsultationTime();
+        return ResponseEntity.ok(totalDuration);
+    }
+
+    @GetMapping("/runtime/range/{startDate}/{endDate}")
+    public ResponseEntity<Duration> getAverageConsultationTimeRange(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate){
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        Duration totalDuration = analysisService.getAverageCounsultationTimeRange(startDateTime, endDateTime);
+        return ResponseEntity.ok(totalDuration);
     }
 }
