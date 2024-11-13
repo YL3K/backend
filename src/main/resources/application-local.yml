@@ -14,6 +14,10 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI_LOCAL}
+    redis:
+      host: ${REDIS_URI_LOCAL}
+      port: 6379
+      password: ${REDIS_PASSWORD_LOCAL}
 
 jwt:
   secretKey: ${JWT_SECRET_KEY}
