@@ -41,3 +41,8 @@ ncloud:
 openai:
   key: ${OPENAI_KEY}
   model: ${OPENAI_MODEL}
+
+google:
+  authorizationCode: ${GOOGLE_AUTHORIZATION_CODE}
+  firebase:
+    projectId: ${FIREBASE_PROJECT}
