@@ -5,14 +5,18 @@ import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.global.openai.service.OpenAiService;
 import com.yl3k.kbsf.summary.dto.SummaryRequestDTO;
 import com.yl3k.kbsf.summary.dto.SummaryResponseDTO;
+import com.yl3k.kbsf.summary.entity.Keyword;
 import com.yl3k.kbsf.summary.entity.Summary;
+import com.yl3k.kbsf.summary.entity.SummaryKeyword;
+import com.yl3k.kbsf.summary.repository.KeywordRepository;
+import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
+import java.util.*;
 
 @Service
 @Transactional
@@ -22,6 +26,8 @@ public class SummaryService {
     private final SummaryRepository summaryRepository;
     private final OpenAiService openAiService;
     private final CounselRoomRepository counselRoomRepository;
+    private final KeywordRepository keywordRepository;
+    private final SummaryKeywordRepository summaryKeywordRepository;
 
     public SummaryResponseDTO createSummary(SummaryRequestDTO request){
         CounselRoom counselRoom = counselRoomRepository.findById(request.getRoomId())
@@ -55,5 +61,48 @@ public class SummaryService {
 
         //Summary 결과 반환
         return new SummaryResponseDTO(summaryText, summaryShort);
+    }
+
+    public Map<String, Object> createKeywords(Long summaryId){
+        //요약ID를 기반으로 Summary 조회
+        Summary summary = summaryRepository.findById(summaryId)
+                .orElseThrow(()->new IllegalArgumentException("Invalid summary ID: "+summaryId));
+
+        //Summary_text를 기반으로 키워드 추출
+        String summaryText = summary.getSummaryText();
+        List<String> existingKeywords = keywordRepository.findAllKeywords();
+
+        String prompt = "지정된 키워드 목록에서 요약문과 가장 관련성이 높은 최대 5개의 키워드를 추출해줘. 각 키워드를 콤마로 구분해서 제공해줘. 가장 중요한 키워드부터 순서대로 나열해줘. 관련된 키워드가 없다면 '관련된 키워드 없음'이라고 답해줘.\n\n"
+                + "지정된 키워드: " + String.join(", ", existingKeywords) + "\n\n" + "요약: " + summaryText;
+
+        String openAiResponse = openAiService.askOpenAi(prompt);
+
+        // API응답 키워드 리스트로 변환
+        String[] keywords = openAiResponse.split(",");
+        keywords = Arrays.stream(keywords)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
+
+        //키워드 저장
+        List<String> savedKeywords = new ArrayList<>();
+        for(String keywordText : keywords){
+            Keyword keyword = keywordRepository.findByKeyword(keywordText).orElse(null);
+            if (keyword != null) { // 존재하는 키워드만 처리
+                SummaryKeyword summaryKeyword = SummaryKeyword.builder()
+                        .summary(summary)
+                        .keyword(keyword)
+                        .build();
+                summaryKeywordRepository.save(summaryKeyword);
+
+                savedKeywords.add(keywordText);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", Map.of("keywords", savedKeywords));
+
+        return response;
     }
 }
