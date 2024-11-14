@@ -4,6 +4,7 @@ import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.entity.UserCounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.counsel.repository.UserCounselRoomRepository;
+import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
 import com.yl3k.kbsf.user.entity.User;
 import com.yl3k.kbsf.user.repository.UserRepository;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,7 @@ public class AnalysisService {
     private final UserCounselRoomRepository userCounselRoomRepository;
     private final CounselRoomRepository counselRoomRepository;
     private final SummaryRepository summaryRepository;
+    private final SummaryKeywordRepository summaryKeywordRepository;
 
     //연령대 분석 - 전체
     public Map<String, Long> calculateConsultationCountByAgeGroup() {
@@ -111,6 +114,36 @@ public class AnalysisService {
         Duration totalDuration = durations.stream().reduce(Duration.ZERO, Duration::plus);
         long averageSeconds = durations.isEmpty()? 0 : totalDuration.getSeconds()/durations.size();
         return Duration.ofSeconds(averageSeconds);
+    }
+
+    //키워드 분석 - 전체
+    public List<Map<String, Object>> getKeywordCounts(){
+        List<Object[]> keywordCounts = summaryKeywordRepository.countKeywords();
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for(Object[] row : keywordCounts){
+            Map<String, Object> keywordData = new HashMap<>();
+            keywordData.put("keyword", row[0]);
+            keywordData.put("count", row[1]);
+            result.add(keywordData);
+        }
+
+        return result;
+    }
+
+    //키워드 분석 - 날짜별
+    public List<Map<String, Object>> getKeywordCountsRange(LocalDateTime startDateTime, LocalDateTime endDateTime){
+        List<Object[]> keywordCounts = summaryKeywordRepository.countKeywordsByCounselRoomDateBetween(startDateTime, endDateTime);
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (Object[] row : keywordCounts) {
+            Map<String, Object> keywordData = new HashMap<>();
+            keywordData.put("keyword", row[0]);      // 키워드
+            keywordData.put("count", row[1]);        // 키워드 사용 횟수
+            result.add(keywordData);
+        }
+
+        return result;
     }
     
 

@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -69,5 +70,22 @@ public class AnalysisController {
 
         Duration totalDuration = analysisService.getAverageCounsultationTimeRange(startDateTime, endDateTime);
         return ResponseEntity.ok(totalDuration);
+    }
+
+    @GetMapping("/keywords")
+    public ResponseEntity<List<Map<String, Object>>> getKeywordCounts() {
+        List<Map<String, Object>> response = analysisService.getKeywordCounts();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/keywords/range/{startDate}/{endDate}")
+    public ResponseEntity<List<Map<String, Object>>> getKeywordCountsRange(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        List<Map<String, Object>> response = analysisService.getKeywordCountsRange(startDateTime, endDateTime);
+        return ResponseEntity.ok(response);
     }
 }
