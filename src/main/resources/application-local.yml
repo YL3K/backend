@@ -43,6 +43,8 @@ openai:
   model: ${OPENAI_MODEL}
 
 google:
-  authorizationCode: ${GOOGLE_AUTHORIZATION_CODE}
+  refreshToken: ${GOOGLE_REFRESH_TOKEN}
+  clientId: ${GOOGLE_CLIENT_ID}
+  clientSecret: ${GOOGLE_CLIENT_SECRET}
   firebase:
     projectId: ${FIREBASE_PROJECT}
