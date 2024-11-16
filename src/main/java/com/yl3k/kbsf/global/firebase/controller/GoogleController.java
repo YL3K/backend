@@ -1,4 +1,4 @@
-package com.yl3k.kbsf.global.firebase;
+package com.yl3k.kbsf.global.firebase.controller;
 
 import com.yl3k.kbsf.global.response.dto.Message;
 import com.yl3k.kbsf.global.response.response.ApiResponse;
