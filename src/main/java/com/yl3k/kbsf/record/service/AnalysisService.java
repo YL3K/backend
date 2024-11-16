@@ -137,6 +137,25 @@ public class AnalysisService {
         return monthlyDurations;
     }
 
+    //월별 상담 횟수 분석
+    public Map<YearMonth, Long> getMonthlyConsultationCount(YearMonth startMonth, YearMonth endMonth){
+        Map<YearMonth, Long> monthlyCount = new HashMap<>();
+        YearMonth currentMonth = startMonth;
+
+        while(!currentMonth.isAfter(endMonth)) {
+            LocalDateTime startOfMonth = currentMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+
+            List<CounselRoom> consultations = counselRoomRepository.findByConsultationDateRange(startOfMonth, endOfMonth);
+            long count = consultations.isEmpty()?0:consultations.size();
+            monthlyCount.put(currentMonth, count);
+
+            currentMonth = currentMonth.plusMonths(1);
+        }
+
+        return monthlyCount;
+    }
+
     //키워드 분석 - 전체
     public List<Map<String, Object>> getKeywordCounts(){
         List<Object[]> keywordCounts = summaryKeywordRepository.countKeywords();

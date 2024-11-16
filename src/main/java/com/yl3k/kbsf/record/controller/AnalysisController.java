@@ -79,6 +79,14 @@ public class AnalysisController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/count/range/{startYearMonth}/{endYearMonth}")
+    public ResponseEntity<Map<YearMonth, Long>> getMonthlyConsultationCount(
+            @PathVariable @DateTimeFormat(pattern = "yyyy.MM") YearMonth startYearMonth,
+            @PathVariable @DateTimeFormat(pattern = "yyyy.MM") YearMonth endYearMonth) {
+        Map<YearMonth, Long> response = analysisService.getMonthlyConsultationCount(startYearMonth, endYearMonth);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/keywords")
     public ResponseEntity<List<Map<String, Object>>> getKeywordCounts() {
         List<Map<String, Object>> response = analysisService.getKeywordCounts();
