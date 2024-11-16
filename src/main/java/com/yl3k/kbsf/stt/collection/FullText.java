@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 public class FullText {
 
     @Id
+    private String id;
+
     private Long roomId;
 
     private String fullText;
