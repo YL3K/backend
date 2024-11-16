@@ -7,10 +7,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,21 +53,30 @@ public class AnalysisController {
         return ResponseEntity.ok(countsByInterval);
     }
 
-    @GetMapping("/runtime")
-    public ResponseEntity<Duration> getAverageConsultationTime(){
-        Duration totalDuration = analysisService.getAverageConsultationTime();
-        return ResponseEntity.ok(totalDuration);
-    }
+//    @GetMapping("/runtime")
+//    public ResponseEntity<Duration> getAverageConsultationTime(){
+//        Duration totalDuration = analysisService.getAverageConsultationTime();
+//        return ResponseEntity.ok(totalDuration);
+//    }
+//
+//    @GetMapping("/runtime/range/{startDate}/{endDate}")
+//    public ResponseEntity<Duration> getAverageConsultationTimeRange(
+//            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+//            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate){
+//        LocalDateTime startDateTime = startDate.atStartOfDay();
+//        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+//
+//        Duration totalDuration = analysisService.getAverageCounsultationTimeRange(startDateTime, endDateTime);
+//        return ResponseEntity.ok(totalDuration);
+//    }
 
-    @GetMapping("/runtime/range/{startDate}/{endDate}")
-    public ResponseEntity<Duration> getAverageConsultationTimeRange(
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate){
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+    @GetMapping("/runtime/range/{startYearMonth}/{endYearMonth}")
+    public ResponseEntity<Map<YearMonth, Duration>> getMonthlyAverageConsultation(
+            @PathVariable @DateTimeFormat(pattern = "yyyy.MM") YearMonth startYearMonth,
+            @PathVariable @DateTimeFormat(pattern = "yyyy.MM") YearMonth endYearMonth) {
+        Map<YearMonth, Duration> response = analysisService.getMonthlyAverageConsultationTimes(startYearMonth, endYearMonth);
 
-        Duration totalDuration = analysisService.getAverageCounsultationTimeRange(startDateTime, endDateTime);
-        return ResponseEntity.ok(totalDuration);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/keywords")

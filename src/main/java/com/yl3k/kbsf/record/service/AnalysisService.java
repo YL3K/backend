@@ -13,10 +13,7 @@ import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.Period;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -90,30 +87,54 @@ public class AnalysisService {
         return countsByInterval;
     }
 
-    //상담 평균 시간 분석 - 전체
-    public Duration getAverageConsultationTime(){
-        List<CounselRoom> consultations = counselRoomRepository.findAll();
+//    //상담 평균 시간 분석 - 전체
+//    public Duration getAverageConsultationTime(){
+//        List<CounselRoom> consultations = counselRoomRepository.findAll();
+//
+//        List<Duration> durations = consultations.stream()
+//                .map(consultation -> Duration.between(consultation.getStartedAt(), consultation.getClosedAt()))
+//                .collect(Collectors.toList());
+//
+//        Duration totalDuration = durations.stream().reduce(Duration.ZERO, Duration::plus);
+//        long averageSeconds = durations.isEmpty()? 0 : totalDuration.getSeconds()/durations.size();
+//        return Duration.ofSeconds(averageSeconds);
+//    }
+//
+//    //상담 평균 시간 분석 - 날짜별
+//    public Duration getAverageCounsultationTimeRange(LocalDateTime startDateTime, LocalDateTime endDateTime){
+//        List<CounselRoom> consultations = counselRoomRepository.findByConsultationDateRange(startDateTime,endDateTime);
+//
+//        List<Duration> durations = consultations.stream()
+//                .map(consultation -> Duration.between(consultation.getStartedAt(), consultation.getClosedAt()))
+//                .collect(Collectors.toList());
+//
+//        Duration totalDuration = durations.stream().reduce(Duration.ZERO, Duration::plus);
+//        long averageSeconds = durations.isEmpty()? 0 : totalDuration.getSeconds()/durations.size();
+//        return Duration.ofSeconds(averageSeconds);
+//    }
 
-        List<Duration> durations = consultations.stream()
-                .map(consultation -> Duration.between(consultation.getStartedAt(), consultation.getClosedAt()))
-                .collect(Collectors.toList());
+    //월별 상담 평균 시간 분석
+    public Map<YearMonth, Duration> getMonthlyAverageConsultationTimes(YearMonth startMonth, YearMonth endMonth) {
+        Map<YearMonth, Duration> monthlyDurations = new HashMap<>();
+        YearMonth currentMonth = startMonth;
 
-        Duration totalDuration = durations.stream().reduce(Duration.ZERO, Duration::plus);
-        long averageSeconds = durations.isEmpty()? 0 : totalDuration.getSeconds()/durations.size();
-        return Duration.ofSeconds(averageSeconds);
-    }
+        while(!currentMonth.isAfter(endMonth)) {
+            LocalDateTime startOfMonth = currentMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59);
 
-    //상담 평균 시간 분석 - 날짜별
-    public Duration getAverageCounsultationTimeRange(LocalDateTime startDateTime, LocalDateTime endDateTime){
-        List<CounselRoom> consultations = counselRoomRepository.findByConsultationDateRange(startDateTime,endDateTime);
+            // 해당 월의 상담 평균 시간 계산
+            List<CounselRoom> consultations = counselRoomRepository.findByConsultationDateRange(startOfMonth, endOfMonth);
+            Duration totalDuration = consultations.stream()
+                    .map(consultation -> Duration.between(consultation.getStartedAt(), consultation.getClosedAt()))
+                    .reduce(Duration.ZERO, Duration::plus);
 
-        List<Duration> durations = consultations.stream()
-                .map(consultation -> Duration.between(consultation.getStartedAt(), consultation.getClosedAt()))
-                .collect(Collectors.toList());
+            long averageSeconds = consultations.isEmpty() ? 0 : totalDuration.getSeconds() / consultations.size();
+            monthlyDurations.put(currentMonth, Duration.ofSeconds(averageSeconds));
 
-        Duration totalDuration = durations.stream().reduce(Duration.ZERO, Duration::plus);
-        long averageSeconds = durations.isEmpty()? 0 : totalDuration.getSeconds()/durations.size();
-        return Duration.ofSeconds(averageSeconds);
+            currentMonth = currentMonth.plusMonths(1);
+        }
+
+        return monthlyDurations;
     }
 
     //키워드 분석 - 전체
