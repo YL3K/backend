@@ -7,7 +7,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
   web:
     resources:
       add-mappings: false
@@ -27,3 +27,7 @@ jwt:
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION}
     header: Authorization-refresh
+
+socketio:
+  host: ${SOCKET_IO_HOST}
+  port: ${SOCKET_IO_PORT}
