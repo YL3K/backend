@@ -34,6 +34,10 @@ public class AuthService {
         return UserResponseDto.of(userRepository.save(user));
     }
 
+    public boolean isLoginIdAvailable(String loginId) {
+        return !userRepository.existsByLoginId(loginId); // 아이디가 없으면 true, 있으면 false 반환
+    }
+
     public TokenDto login(UserRequestDto requestDto) {
         UsernamePasswordAuthenticationToken authenticationToken = requestDto.toAuthentication();
 
