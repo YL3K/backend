@@ -13,13 +13,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -30,16 +28,11 @@ public class TokenProvider {
 
     private static final Logger log = LoggerFactory.getLogger(TokenProvider.class); // Logger 객체 선언
 
-
     private static final String AUTHORITIES_KEY = "auth";
     private static final String BEARER_TYPE = "bearer";
     private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 30;
     private final SecretKey secretKey;
-
-
-
-    // 주의점: 여기서 @Value는 `springframework.beans.factory.annotation.Value`소속이다! lombok의 @Value와 착각하지 말것!
-    //     * @param secretKey
+    
     public TokenProvider(@Value("${jwt.secretKey}") String secretKey) {
         // secretKey가 512비트 이상인지를 체크하고, 그렇지 않으면 안전한 비밀 키 생성
         if (secretKey.length() < 64) {
@@ -55,7 +48,6 @@ public class TokenProvider {
 
     // 토큰 생성
     public TokenDto generateTokenDto(Authentication authentication) {
-
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -64,24 +56,25 @@ public class TokenProvider {
         Date tokenExpiresIn = new Date(now + ACCESS_TOKEN_EXPIRE_TIME);
         System.out.println(tokenExpiresIn);
 
-        // UserDetails에서 사용자 정보를 가져옵니다.
-        User principal = (User) authentication.getPrincipal();
-        Integer userId = principal.getUserId(); // User 엔티티에서 loginId
-        String userType = principal.getUserType().name(); // User 엔티티에서 userType
-
-
-        // 수정된 부분: SignatureAlgorithm과 Key를 정확하게 전달
+        // UserDetails에서 사용자 정보를 load
+        User principal = (User)authentication.getPrincipal();
+        Integer userId = principal.getUserId();
+        String userType = principal.getUserType().name();
+        String userName = principal.getUsername();
+        
         String accessToken = Jwts.builder()
                 .setSubject(userId.toString())
-                .claim(AUTHORITIES_KEY, authorities) // 권한 정보 추가
-                .claim("userType", userType) // userType 추가
+                .claim(AUTHORITIES_KEY, authorities)
+                .claim("userType", userType)
+                .claim("userName", userName)
                 .setExpiration(tokenExpiresIn)
-                .signWith(SignatureAlgorithm.HS512, secretKey)  // Key 객체와 SignatureAlgorithm을 정확히 사용
+                .signWith(SignatureAlgorithm.HS512, secretKey)
                 .compact();
 
         return TokenDto.builder()
                 .userId(userId)
                 .userType(userType)
+                .userName(userName)
                 .grantType(BEARER_TYPE)
                 .accessToken(accessToken)
                 .tokenExpiresIn(tokenExpiresIn.getTime())
@@ -98,17 +91,16 @@ public class TokenProvider {
         // JWT에서 userType 추출
         String userTypeStr = claims.get("userType", String.class);
         UserType userType = UserType.valueOf(userTypeStr);
+        String userName = claims.get("userName", String.class);
 
         Collection<? extends GrantedAuthority> authorities =
                 Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
-        // 추출된 권한을 기반으로 UserType을 결정합니다.
-//        UserType userType = UserType.valueOf(claims.get(AUTHORITIES_KEY).toString().split(",")[0]);
-
         // User 객체 생성 - loginId (claims.getSubject())와 userType 사용
         User principal = new User(claims.getSubject(), "", userType);
+        principal.setUserName(userName); // username 추가
 
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
