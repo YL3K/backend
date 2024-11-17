@@ -1,14 +1,15 @@
 package com.yl3k.kbsf.record.service;
 
+import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.counsel.repository.UserCounselRoomRepository;
 import com.yl3k.kbsf.record.dto.FeedbackDTO;
 import com.yl3k.kbsf.record.dto.MemoDTO;
 import com.yl3k.kbsf.record.dto.MemoResponseDTO;
 import com.yl3k.kbsf.record.entity.Feedback;
-import com.yl3k.kbsf.record.entity.FullText;
 import com.yl3k.kbsf.record.entity.Memo;
 import com.yl3k.kbsf.record.repository.FeedbackRepository;
+import com.yl3k.kbsf.stt.collection.FullText;
 import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.record.repository.MemoRepository;
 import com.yl3k.kbsf.summary.entity.Keyword;
@@ -82,7 +83,7 @@ public class RecordService {
      * 고객의 경우: 상담 요약과 키워드 조회
      */
     public Map<String, Object> getFilteredSummariesForCustomer(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
-        String userType = "customer";
+
         // 1. userId에 해당하는 roomId 목록 조회
         List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
 
@@ -105,7 +106,6 @@ public class RecordService {
         result.put("count", summaries.size());
         result.put("topKeyword",topKeyword);
         result.put("summaries", summaries);
-        result.put("userType",userType);
 
 
         return result;
@@ -115,7 +115,6 @@ public class RecordService {
      * 상담사의 경우: 상담 건수 및 고객명 필터링 조회
      */
     public Map<String, Object> getFilteredSummariesForCounselor(Integer counselorId, LocalDateTime startDate, LocalDateTime endDate, String customerName) {
-        String userType = "counselor";
         List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(counselorId);
         int totalCount = counselRoomRepository.countByRoomIdsAndDateRange(roomIds, startDate, endDate);
 
@@ -151,7 +150,6 @@ public class RecordService {
         result.put("filteredCounselCount", summaries.size());
         result.put("totalCounselCount", totalCount);
         result.put("summaries", summariesWithCustomerInfo);
-        result.put("userType",userType);
         return result;
     }
 
@@ -177,33 +175,43 @@ public class RecordService {
 
         // 1. Summary 정보 조회
         Summary summary = summaryRepository.findBySummaryId(summaryId)
-                .orElseThrow(() -> new RuntimeException("Summary not found"));
+                .orElseThrow(() -> new RuntimeException("Summary with ID " + summaryId + " not found."));
+
+        CounselRoom counselRoom = summary.getCounselRoom();
+        if (counselRoom == null) {
+            throw new RuntimeException("CounselRoom is not linked to the given Summary.");
+        }
         result.put("summary", summary);
 
         // 2. 상담 날짜 조회
-        Long roomId = summary.getCounselRoom().getRoomId();
+        Long roomId = counselRoom.getRoomId();
         LocalDateTime closedAt = counselRoomRepository.findClosedAtByRoomId(roomId);
         result.put("counselDate", closedAt);
 
         // 3. 상담사 및 고객 정보 조회
         List<Integer> userIds = userCounselRoomRepository.findUserIdsByRoomId(roomId);
+        if (userIds.isEmpty()) {
+            throw new RuntimeException("No users linked to the given Room ID.");
+        }
 
-        // 3-1. 상담사 이름 조회
+        // 상담사 조회
         List<User> counselors = userRepository.findCounselorsByIds(userIds);
+        if (counselors.isEmpty()) {
+            throw new RuntimeException("No counselors found for the given Room ID.");
+        }
         result.put("counselor", counselors.get(0).getUsername());
-        // 3-2. 고객 정보 조회
+
+        // 고객 조회
         User customer = userRepository.findCustomerByRoomId(roomId);
+        if (customer == null) {
+            throw new RuntimeException("Customer not found for the given Room ID.");
+        }
         result.put("customer", customer);
 
         // 4. 메모 정보 조회
         List<Memo> memos = memoRepository.findBySummaryId(summaryId);
         List<MemoResponseDTO> memoDtos = memos.stream()
-                .map(memo -> new MemoResponseDTO(
-                        memo.getMemoId(),
-                        memo.getMemo(),
-                        memo.getCreatedAt(),
-                        memo.getUpdatedAt()
-                ))
+                .map(memo -> new MemoResponseDTO(memo.getMemoId(), memo.getMemo(), memo.getCreatedAt(), memo.getUpdatedAt()))
                 .collect(Collectors.toList());
         result.put("memos", memoDtos.isEmpty() ? Collections.emptyList() : memoDtos);
 
@@ -217,16 +225,11 @@ public class RecordService {
         List<String> keywordList = keywords.stream()
                 .map(Keyword::getKeyword)
                 .collect(Collectors.toList());
-
-        // 6-4. 결과 맵에 키워드 목록 추가
         result.put("keywords", keywordList.isEmpty() ? Collections.emptyList() : keywordList);
 
         // 7. MongoDB에서 상담 내용 조회
-        List <FullText> fullText= fullTextRepository.findByRoomId(roomId);
-
-        result.put("fullText", fullText.isEmpty()? Collections.emptyList() : fullText.get(0).getFullText());
-
-
+        FullText fullText = fullTextRepository.findByRoomId(roomId);
+        result.put("fullText", fullText == null ? Collections.emptyList() : fullText.getFullText());
 
         return result;
     }
