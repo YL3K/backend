@@ -28,7 +28,7 @@ jwt:
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION}
     header: Authorization-refresh
-
+    
 ncloud:
   accessKey: ${NCLOUD_ACCESS_KEY}
   secretKey: ${NCLOUD_SECRET_KEY}

@@ -6,10 +6,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.List;
 
 @Repository
 public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
+  
+    @Query("SELECT k.keyword FROM Keyword k")
+    List<String> findAllKeywords();
+
+    Optional<Keyword> findByKeyword(String keyword);
+  
     /**
      *
      * @param keywordId 가장 높은 빈도의 keywordId
@@ -27,5 +34,5 @@ public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
      */
     @Query("SELECT k FROM Keyword k WHERE k.keywordId IN :keywordIds")
     List<Keyword> findKeywordsByIds(@Param("keywordIds") List<Integer> keywordIds);
-}
 
+}

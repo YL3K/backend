@@ -26,4 +26,5 @@ public enum ApplicationError {
 
     private final HttpStatus code;
     private final String message;
+  
 }
