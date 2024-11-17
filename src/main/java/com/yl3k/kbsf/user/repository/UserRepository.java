@@ -6,10 +6,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
+    
+    // loginId와 일치하는 User 반환
+    Optional<User> findByLoginId(String loginId);
+    // loginId 중복 체크 : 존재하면 true, 존재하지 않으면 false 반환
+    boolean existsByLoginId(String loginId);
 
     /**
      * 특정 userId 목록에 해당하며 user_type이 'counselor'인 사용자들을 조회
@@ -29,5 +35,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
      */
     @Query("SELECT u FROM User u JOIN UserCounselRoom ucr ON u.userId = ucr.user.userId WHERE ucr.counselRoom.roomId = :roomId AND u.userType = 'customer'")
     User findCustomerByRoomId(@Param("roomId") Long roomId);
-
+  
 }
