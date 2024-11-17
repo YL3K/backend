@@ -1,9 +1,12 @@
 package com.yl3k.kbsf.stt.controller;
 
+import com.yl3k.kbsf.global.response.response.ApiResponse;
+import com.yl3k.kbsf.stt.dto.SttResponse;
 import com.yl3k.kbsf.stt.service.SttService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -11,4 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class SttController {
 
     private final SttService sttService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<SttResponse>> speechToText(@RequestPart MultipartFile file, @RequestPart Long roomId) {
+
+        SttResponse response = sttService.speechToText(file, roomId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
