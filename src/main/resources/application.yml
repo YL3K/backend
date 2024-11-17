@@ -8,3 +8,10 @@ spring:
   output:
     ansi:
       enabled: always
+logging:
+  level:
+    com.yl3k: debug
+    org.springframework.boot: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace
