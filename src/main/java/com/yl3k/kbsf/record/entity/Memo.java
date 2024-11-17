@@ -2,9 +2,6 @@ package com.yl3k.kbsf.record.entity;
 
 import com.yl3k.kbsf.summary.entity.Summary;
 import com.yl3k.kbsf.user.entity.User;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -15,6 +12,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "memo")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

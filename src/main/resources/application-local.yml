@@ -14,10 +14,15 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI_LOCAL}
+      database: ${MONGODB_DATABASE}
     redis:
       host: ${REDIS_URI_LOCAL}
       port: 6379
       password: ${REDIS_PASSWORD_LOCAL}
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 30MB
 
 jwt:
   secretKey: ${JWT_SECRET_KEY}
@@ -31,3 +36,23 @@ jwt:
 socketio:
   host: ${SOCKET_IO_HOST}
   port: ${SOCKET_IO_PORT}
+    
+ncloud:
+  accessKey: ${NCLOUD_ACCESS_KEY}
+  secretKey: ${NCLOUD_SECRET_KEY}
+  objectStorage:
+    bucket: ${OBJECT_STORAGE_BUCKET}
+  clovaSpeech:
+    secretKey: ${CLOVA_SECRET_KEY}
+    invokeUrl: ${CLOVA_INVOKE_URL}
+
+openai:
+  key: ${OPENAI_KEY}
+  model: ${OPENAI_MODEL}
+
+google:
+  refreshToken: ${GOOGLE_REFRESH_TOKEN}
+  clientId: ${GOOGLE_CLIENT_ID}
+  clientSecret: ${GOOGLE_CLIENT_SECRET}
+  firebase:
+    projectId: ${FIREBASE_PROJECT}
