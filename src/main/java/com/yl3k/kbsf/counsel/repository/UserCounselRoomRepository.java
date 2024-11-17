@@ -6,11 +6,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface UserCounselRoomRepository extends JpaRepository<UserCounselRoom, Long> {
 
+    @Query("SELECT ucr FROM UserCounselRoom ucr " +
+            "JOIN ucr.counselRoom cr " +
+            "WHERE cr.startedAt BETWEEN :startDate AND :endDate")
+    List<UserCounselRoom> findByConsultationDateRange(@Param("startDate") LocalDateTime startDate,
+                                                      @Param("endDate") LocalDateTime endDate);
     /**
      * 특정 사용자 ID로 roomIds 조회
      *
@@ -50,5 +56,5 @@ public interface UserCounselRoomRepository extends JpaRepository<UserCounselRoom
      */
     @Query("SELECT ucr.user.userId FROM UserCounselRoom ucr WHERE ucr.counselRoom.roomId = :roomId AND ucr.user.userType = 'customer'")
     Integer findCustomerIdByRoomId(@Param("roomId") Long roomId);
-
+  
 }
