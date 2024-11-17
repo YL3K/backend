@@ -3,15 +3,15 @@ package com.yl3k.kbsf.counsel.controller;
 import com.yl3k.kbsf.counsel.dto.WaitingCustomerDto;
 import com.yl3k.kbsf.counsel.service.CounselService;
 import com.yl3k.kbsf.counsel.service.WaitingQueueService;
+import com.yl3k.kbsf.global.response.response.ApiResponse;
+import com.yl3k.kbsf.global.response.response.ErrorResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,58 +22,58 @@ public class CounselController {
     private final WaitingQueueService waitingQueueService;
 
     @PostMapping("/queue")
-    public ResponseEntity<Map<String, Object>> addCustomer(@RequestBody WaitingCustomerDto waitingCustomerDto){
+    public ResponseEntity<ApiResponse<WaitingCustomerDto>> addCustomer(@RequestBody WaitingCustomerDto waitingCustomerDto){
         waitingCustomerDto.setStartTime(Timestamp.valueOf(LocalDateTime.now()));
         waitingQueueService.addCustomer(waitingCustomerDto);
 
-        Map<String, Object> response = new HashMap<>();
-        Map<String, Object> responseData = new HashMap<>();
-
-        responseData.put("data", waitingCustomerDto);
-        response.put("success", true);
-        response.put("response", responseData);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(waitingCustomerDto));
     }
 
     @GetMapping("/queue")
-    public ResponseEntity<Map<String, Object>> getWaitingQueues(@RequestParam(value = "limit", required = false) Integer limit){
+    public ResponseEntity<ApiResponse<?>> getWaitingQueues(@RequestParam(value = "limit", required = false) Integer limit){
         List<WaitingCustomerDto> waitingQueues = waitingQueueService.getWaitingQueues(limit);
-        Map<String, Object> response = new HashMap<>();
-        Map<String, Object> responseData1 = new HashMap<>();
-        Map<String, Object> responseData2 = new HashMap<>();
-        System.out.println(waitingQueues);
 
         if (!waitingQueues.isEmpty()) {
-            responseData2.put("queue", waitingQueues);
-            responseData1.put("data", responseData2);
-            response.put("success", true);
-            response.put("response", responseData1);
+            return ResponseEntity.ok(ApiResponse.success(waitingQueues));
         } else {
-            responseData1.put("code", 204);
-            responseData1.put("message", "No customers in the waiting queue.");
-            response.put("success", false);
-            response.put("error", responseData1);
+            ErrorResponse errorResponse = new ErrorResponse(204, "No customers in the waiting queue.");
+            return ResponseEntity.ok(ApiResponse.failure(errorResponse));
         }
-
-        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/queue/assign")
-    public ResponseEntity<Map<String, Object>> assignCustomer(){
+    public ResponseEntity<ApiResponse<?>> assignCustomer(){
         WaitingCustomerDto assignedCustomer = waitingQueueService.assignCustomer();
-        Map<String, Object> response = new HashMap<>();
-        Map<String, Object> responseData = new HashMap<>();
 
         if (assignedCustomer != null) {
-            responseData.put("data", assignedCustomer);
-            response.put("success", true);
-            response.put("response", responseData);
+            return ResponseEntity.ok(ApiResponse.success(assignedCustomer));
         } else {
-            responseData.put("code", 204);
-            responseData.put("message", "No customers in the waiting queue.");
-            response.put("success", false);
-            response.put("error", responseData);
+            ErrorResponse errorResponse = new ErrorResponse(204, "No customers in the waiting queue.");
+            return ResponseEntity.ok(ApiResponse.failure(errorResponse));
         }
-        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/queue/position")
+    public ResponseEntity<ApiResponse<?>> getCustomerPosition(@RequestBody WaitingCustomerDto waitingCustomerDto) {
+        long userId = waitingCustomerDto.getUserId();
+        Integer position = waitingQueueService.getCustomerPosition(userId);
+        if (position != null) {
+            return ResponseEntity.ok(ApiResponse.success(position));
+        } else {
+            ErrorResponse errorResponse = new ErrorResponse(204, userId + " customers in the waiting queue.");
+            return ResponseEntity.ok(ApiResponse.failure(errorResponse));
+        }
+    }
+
+    @DeleteMapping("/queue")
+    public ResponseEntity<ApiResponse<?>> removeCustomer(@RequestBody WaitingCustomerDto waitingCustomerDto) {
+        long userId = waitingCustomerDto.getUserId();
+        boolean success = waitingQueueService.removeCustomer(userId);
+        if (success) {
+            return ResponseEntity.ok(ApiResponse.success("Customer removed successfully"));
+        } else {
+            ErrorResponse errorResponse = new ErrorResponse(204, userId + " customers in the waiting queue.");
+            return ResponseEntity.ok(ApiResponse.failure(errorResponse));
+        }
     }
 }
