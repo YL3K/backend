@@ -14,7 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/record")
-public class gRecordController {
+public class RecordController {
 
     @Autowired
     private RecordService recordService;

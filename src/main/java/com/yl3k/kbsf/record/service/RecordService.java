@@ -9,7 +9,7 @@ import com.yl3k.kbsf.record.entity.Feedback;
 import com.yl3k.kbsf.record.entity.FullText;
 import com.yl3k.kbsf.record.entity.Memo;
 import com.yl3k.kbsf.record.repository.FeedbackRepository;
-import com.yl3k.kbsf.record.repository.FullTextRepository;
+import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.record.repository.MemoRepository;
 import com.yl3k.kbsf.summary.entity.Keyword;
 import com.yl3k.kbsf.summary.entity.Summary;
@@ -18,9 +18,6 @@ import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
 import com.yl3k.kbsf.user.entity.User;
 import com.yl3k.kbsf.user.entity.UserType;
-import com.yl3k.kbsf.user.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import com.yl3k.kbsf.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -144,7 +141,7 @@ public class RecordService {
                         .orElseThrow(() -> new RuntimeException("Customer not found"));
                 Map<String, Object> userMap = new HashMap<>();
                 userMap.put("userId", customer.getUserId());
-                userMap.put("userName", customer.getUserName());
+                userMap.put("userName", customer.getUsername());
                 summaryMap.put("user", userMap); // 고객 정보를 user 필드에 추가
             }
             return summaryMap;
@@ -193,7 +190,7 @@ public class RecordService {
 
         // 3-1. 상담사 이름 조회
         List<User> counselors = userRepository.findCounselorsByIds(userIds);
-        result.put("counselor", counselors.get(0).getUserName());
+        result.put("counselor", counselors.get(0).getUsername());
         // 3-2. 고객 정보 조회
         User customer = userRepository.findCustomerByRoomId(roomId);
         result.put("customer", customer);

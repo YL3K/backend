@@ -20,14 +20,6 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/me")
-    public ResponseEntity<UserResponseDto> getMyMemberInfo() {
-        UserResponseDto myInfoBySecurity = userService.getMyInfoBySecurity();
-        System.out.println(myInfoBySecurity.getUserName());
-        return ResponseEntity.ok((myInfoBySecurity));
-        // return ResponseEntity.ok(memberService.getMyInfoBySecurity());
-    }
-
     @GetMapping
     public ResponseEntity<ApiResponse<Message>> test() {
 
