@@ -15,6 +15,10 @@ spring:
     mongodb:
       uri: ${MONGODB_URI_LOCAL}
       database: ${MONGODB_DATABASE}
+    redis:
+      host: ${REDIS_URI_LOCAL}
+      port: 6379
+      password: ${REDIS_PASSWORD_LOCAL}
   servlet:
     multipart:
       max-file-size: 30MB
@@ -28,6 +32,10 @@ jwt:
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION}
     header: Authorization-refresh
+
+socketio:
+  host: ${SOCKET_IO_HOST}
+  port: ${SOCKET_IO_PORT}
     
 ncloud:
   accessKey: ${NCLOUD_ACCESS_KEY}

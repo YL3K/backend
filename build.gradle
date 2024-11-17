@@ -77,6 +77,13 @@ dependencies {
     // SLF4J와 Logback 의존성
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'ch.qos.logback:logback-classic:1.4.7'
+    
+    // 웹소켓
+    //implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation group: 'com.corundumstudio.socketio', name: 'netty-socketio', version: '2.0.9'
+
+    // redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
 }
 
