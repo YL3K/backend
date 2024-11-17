@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface FullTextRepository extends MongoRepository<FullText, String> {
-    List<com.yl3k.kbsf.record.entity.FullText> findByRoomId(Long roomId);
+    FullText findByRoomId(Long roomId);
 }
