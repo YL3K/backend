@@ -52,6 +52,22 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // NAVER CLOUD
+    implementation platform('software.amazon.awssdk:bom:2.20.56')
+    implementation 'software.amazon.awssdk:s3:'
+    implementation 'software.amazon.awssdk:sso'
+    implementation 'software.amazon.awssdk:ssooidc'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.13'
+
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    implementation 'org.apache.httpcomponents:httpmime:4.3.1'
+    implementation 'com.google.code.gson:gson:2.8.9'
+
+    // Jackson
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
+
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // Spring Boot 기본 로깅
