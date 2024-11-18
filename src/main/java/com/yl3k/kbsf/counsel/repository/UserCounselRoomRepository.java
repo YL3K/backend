@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserCounselRoomRepository extends JpaRepository<UserCounselRoom, Long> {
@@ -46,7 +47,7 @@ public interface UserCounselRoomRepository extends JpaRepository<UserCounselRoom
      * @return userId 목록 (고객 및 상담사)
      */
     @Query("SELECT ucr.user.userId FROM UserCounselRoom ucr WHERE ucr.counselRoom.roomId = :roomId")
-    List<Integer> findUserIdsByRoomId(@Param("roomId") Long roomId);
+    Optional<List<Integer>> findUserIdsByRoomId(@Param("roomId") Long roomId);
 
     /**
      * 특정 roomId의 고객 userId 조회
