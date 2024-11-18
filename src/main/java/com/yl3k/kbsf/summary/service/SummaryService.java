@@ -86,10 +86,14 @@ public class SummaryService {
         String summaryText = summary.getSummaryText();
         List<String> existingKeywords = keywordRepository.findAllKeywords();
 
-        String prompt = "지정된 키워드 목록에서 요약문과 가장 관련성이 높은 최대 5개의 키워드를 추출해줘. 각 키워드를 콤마로 구분해서 제공해줘. 가장 중요한 키워드부터 순서대로 나열해줘. 관련된 키워드가 없다면 '관련된 키워드 없음'이라고 답해줘.\n\n"
+        String prompt = "지정된 키워드 목록에서 요약문과 가장 관련있는 최대 5개의 키워드를 추출해줘." +
+                "반드시 지정된 키워드 목록 안에 있어야 해. 반드시 224개의 키워드를 모두 확인하고 그 중에서 선택해줘." +
+                "각 키워드를 콤마로 구분해서 제공해줘." +
+                "가장 중요한 키워드부터 순서대로 나열해줘. 관련된 키워드가 없다면 '관련된 키워드 없음'이라고 답해줘.\n\n"
                 + "지정된 키워드: " + String.join(", ", existingKeywords) + "\n\n" + "요약: " + summaryText;
 
         String openAiResponse = openAiService.askOpenAi(prompt);
+        System.out.println("OpenAI Prompt : " + prompt + "\n------------\nOpenAI Response: " + openAiResponse);
 
         // API응답 키워드 리스트로 변환
         String[] keywords = openAiResponse.split(",");
