@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/record")
@@ -117,11 +116,11 @@ public class RecordController {
     }
 
     @GetMapping("/test")
-    public ResponseEntity<ApiResponse<CounselorResponseDto>> test(
+    public ResponseEntity<ApiResponse<CounselorResponseDTO>> test(
             @RequestParam Integer userId,
             @RequestParam String choiceDate // "yyyy-MM" 형식으로 받음
     ){
-        CounselorResponseDto result = recordService.getMonthlySummary(userId, choiceDate);
+        CounselorResponseDTO result = recordService.getMonthlySummary(userId, choiceDate);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

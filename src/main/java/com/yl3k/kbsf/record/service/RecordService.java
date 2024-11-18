@@ -232,7 +232,7 @@ public class RecordService {
     }
 
 
-    public CounselorResponseDto getMonthlySummary( Integer userId,String choiceDate){
+    public CounselorResponseDTO getMonthlySummary(Integer userId, String choiceDate){
         // 0. choiceDate를 기준으로 startDate와 endDate 구하기
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
         YearMonth yearMonth = YearMonth.parse(choiceDate, formatter);
@@ -245,7 +245,7 @@ public class RecordService {
         System.out.println("roomIds : " + roomIds);
 
         if (roomIds.isEmpty()) {
-            return CounselorResponseDto.builder()
+            return CounselorResponseDTO.builder()
                     .totalCount(0)
                     .customerName(null)
                     .customerDate(null)
@@ -258,7 +258,7 @@ public class RecordService {
         int totalCount = filteredRoomIds.size();
 
         if (filteredRoomIds.isEmpty()) {
-            return CounselorResponseDto.builder()
+            return CounselorResponseDTO.builder()
                     .totalCount(0)
                     .customerName(null)
                     .customerDate(null)
@@ -274,7 +274,7 @@ public class RecordService {
         String userName = recentUser.get().getUsername();
 
         // 구한 값들 Dto에 적용
-        CounselorResponseDto  responseCounselorDto = CounselorResponseDto.builder()
+        CounselorResponseDTO responseCounselorDto = CounselorResponseDTO.builder()
                 .totalCount(totalCount)
                 .customerName(userName)
                 .customerDate(recentCloseDate)

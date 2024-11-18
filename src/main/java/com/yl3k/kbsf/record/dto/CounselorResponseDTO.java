@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class CounselorResponseDto {
+public class CounselorResponseDTO {
     private int totalCount;
     private String customerName;
     private LocalDateTime customerDate;
