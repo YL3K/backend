@@ -11,7 +11,7 @@ import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    
+    Optional<User> findByUserId(Integer userId);
     // loginId와 일치하는 User 반환
     Optional<User> findByLoginId(String loginId);
     // loginId 중복 체크 : 존재하면 true, 존재하지 않으면 false 반환

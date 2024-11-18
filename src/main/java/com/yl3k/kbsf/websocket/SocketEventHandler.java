@@ -1,5 +1,7 @@
 package com.yl3k.kbsf.websocket;
 
+import com.yl3k.kbsf.counsel.dto.WaitingCustomerDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -10,16 +12,16 @@ import org.springframework.web.socket.CloseStatus;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
 public class SocketEventHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketEventHandler.class);
-
-    // 사용자 - 세션 관리 맵과 사용자 - 방번호 관리 맵
     private final Map<String, WebSocketSession> users = new HashMap<>();
     private final Map<String, String> socketRoom = new HashMap<>();
+    private final ObjectMapper objectMapper = new ObjectMapper(); // Jackson ObjectMapper
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -63,17 +65,12 @@ public class SocketEventHandler extends TextWebSocketHandler {
     }
 
     private void handleJoinRoom(WebSocketSession session, String roomId) throws IOException {
-        if (socketRoom.containsValue(roomId)) {
-            socketRoom.put(session.getId(), roomId);
-            logger.info("User {} joined room {}", session.getId(), roomId);
-        } else {
-            socketRoom.put(session.getId(), roomId);
-            logger.info("No room for user {}. Created new room: {}", session.getId(), roomId);
-        }
+        socketRoom.put(session.getId(), roomId);
+        logger.info("User {} joined room {}", session.getId(), roomId);
     }
 
     private void handleOffer(WebSocketSession session, SocketMessage msgData, String roomId) {
-        sendToRoom(roomId,  msgData);
+        sendToRoom(roomId, msgData);
     }
 
     private void handleAnswer(WebSocketSession session, SocketMessage msgData, String roomId) {
@@ -112,6 +109,25 @@ public class SocketEventHandler extends TextWebSocketHandler {
                 }
             }
         });
+    }
+
+    // 대기열 업데이트를 모든 클라이언트에 전송하는 메서드
+    public void broadcastQueueUpdate(List<WaitingCustomerDto> waitingQueues) {
+        try {
+            String jsonMessage = objectMapper.writeValueAsString(waitingQueues);
+            users.values().forEach(user -> {
+                try {
+                    if (user.isOpen()) {
+                        user.sendMessage(new TextMessage(jsonMessage));
+                        logger.info("Broadcasting queue update: {}", jsonMessage);
+                    }
+                } catch (IOException e) {
+                    logger.error("Error broadcasting message: {}", e.getMessage());
+                }
+            });
+        } catch (IOException e) {
+            logger.error("Error serializing queue update: {}", e.getMessage());
+        }
     }
 
     @Override
