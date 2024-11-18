@@ -115,4 +115,15 @@ public class RecordController {
         Message message = Message.builder().message("Memo updated successfully.").build();
         return ResponseEntity.ok(ApiResponse.success(message));
     }
+
+    @GetMapping("/test")
+    public ResponseEntity<ApiResponse<CounselorResponseDto>> test(
+            @RequestParam Integer userId,
+            @RequestParam String choiceDate // "yyyy-MM" 형식으로 받음
+    ){
+        CounselorResponseDto result = recordService.getMonthlySummary(userId, choiceDate);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+
 }

@@ -24,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -228,4 +230,59 @@ public class RecordService {
 
         memoRepository.save(existingMemo);
     }
+
+
+    public CounselorResponseDto getMonthlySummary( Integer userId,String choiceDate){
+        // 0. choiceDate를 기준으로 startDate와 endDate 구하기
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        YearMonth yearMonth = YearMonth.parse(choiceDate, formatter);
+        LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay(); // 월 첫째 날 00:00:00
+        LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59); // 월 마지막 날 23:59:59
+
+
+        // 1. 입력받은 userId 기준 roomId들 조회
+        List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
+        System.out.println("roomIds : " + roomIds);
+
+        if (roomIds.isEmpty()) {
+            return CounselorResponseDto.builder()
+                    .totalCount(0)
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 2. roomId와 날짜를 기준으로 roomId들 거르기 + 개수 구하기
+        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndRoomIds(roomIds, startDate, endDate);
+        int totalCount = filteredRoomIds.size();
+
+        if (filteredRoomIds.isEmpty()) {
+            return CounselorResponseDto.builder()
+                    .totalCount(0)
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 3. 걸러진 roomId 중 제일 최근 값을 활용하여 고객의 User정보 구하기 + roomId로 상담한 날짜 구하기
+        Long recentRoomId = filteredRoomIds.get(0);
+        LocalDateTime recentCloseDate =  counselRoomRepository.findClosedAtByRoomId(recentRoomId);
+
+        Optional<User> recentUser = userRepository.findCustomerByRoomId(recentRoomId);
+        String userName = recentUser.get().getUsername();
+
+        // 구한 값들 Dto에 적용
+        CounselorResponseDto  responseCounselorDto = CounselorResponseDto.builder()
+                .totalCount(totalCount)
+                .customerName(userName)
+                .customerDate(recentCloseDate)
+                .build();
+
+        return responseCounselorDto;
+
+
+    }
+
 }
