@@ -24,7 +24,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
      * @return user_type이 'counselor'인 User 엔티티 목록
      */
     @Query("SELECT u FROM User u WHERE u.userId IN :userIds AND u.userType = 'counselor'")
-    List<User> findCounselorsByIds(@Param("userIds") List<Integer> userIds);
+    Optional<User> findCounselorsByIds(@Param("userIds") List<Integer> userIds);
 
 
     /**
@@ -34,6 +34,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
      * @return 고객 정보
      */
     @Query("SELECT u FROM User u JOIN UserCounselRoom ucr ON u.userId = ucr.user.userId WHERE ucr.counselRoom.roomId = :roomId AND u.userType = 'customer'")
-    User findCustomerByRoomId(@Param("roomId") Long roomId);
-  
+    Optional<User> findCustomerByRoomId(@Param("roomId") Long roomId);
 }
