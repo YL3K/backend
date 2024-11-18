@@ -1,7 +1,5 @@
 package com.yl3k.kbsf.record.dto;
 
-import com.yl3k.kbsf.record.entity.Feedback;
-import com.yl3k.kbsf.record.entity.FullText;
 import com.yl3k.kbsf.summary.entity.Summary;
 import com.yl3k.kbsf.user.entity.User;
 import lombok.*;
