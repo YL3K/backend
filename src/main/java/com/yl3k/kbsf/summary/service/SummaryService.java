@@ -3,6 +3,8 @@ package com.yl3k.kbsf.summary.service;
 import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.global.openai.service.OpenAiService;
+import com.yl3k.kbsf.stt.collection.FullText;
+import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.summary.dto.SummaryRequestDTO;
 import com.yl3k.kbsf.summary.dto.SummaryResponseDTO;
 import com.yl3k.kbsf.summary.entity.Keyword;
@@ -28,17 +30,26 @@ public class SummaryService {
     private final CounselRoomRepository counselRoomRepository;
     private final KeywordRepository keywordRepository;
     private final SummaryKeywordRepository summaryKeywordRepository;
+    private final FullTextRepository fullTextRepository;
 
-    public SummaryResponseDTO createSummary(SummaryRequestDTO request){
-        CounselRoom counselRoom = counselRoomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid room ID: " + request.getRoomId()));
+    public Map<String, String> createSummary(Long roomId){
+        CounselRoom counselRoom = counselRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid room ID: " + roomId));
+
+        // MongoDB에서 roomId를 사용해 text 조회
+        FullText fullText = fullTextRepository.findByRoomId(roomId);
+        if (fullText == null) {
+            throw new IllegalArgumentException("Text not found for room ID: " + roomId);
+        }
+
+        String text = fullText.getFullText();
 
         //요약 생성 - OpenAI API
         String prompt = "다음 대화를 요약해줘.\n"
                 + "1. 한 줄로 요약. 제목느낌으로 명사형 요약\n"
                 + "2. 1000자 이내로 요약\n"
                 + "응답 형식은 한 줄로 요약한 내용을 먼저 적고, 줄바꿈을 한번만 하여 바로 아랫줄에 1000자 이내로 요약한 내용을 적어줘.\n\n"
-                + request.getText();
+                + text;
 
         String openAiResponse = openAiService.askOpenAi(prompt);
 
@@ -59,8 +70,11 @@ public class SummaryService {
                 .build();
         summaryRepository.save(summary);
 
-        //Summary 결과 반환
-        return new SummaryResponseDTO(summaryText, summaryShort);
+        Map<String, String> response = new HashMap<>();
+        response.put("summaryShort", summaryShort);
+        response.put("summaryText", summaryText);
+
+        return response;
     }
 
     public Map<String, Object> createKeywords(Long summaryId){
@@ -72,10 +86,14 @@ public class SummaryService {
         String summaryText = summary.getSummaryText();
         List<String> existingKeywords = keywordRepository.findAllKeywords();
 
-        String prompt = "지정된 키워드 목록에서 요약문과 가장 관련성이 높은 최대 5개의 키워드를 추출해줘. 각 키워드를 콤마로 구분해서 제공해줘. 가장 중요한 키워드부터 순서대로 나열해줘. 관련된 키워드가 없다면 '관련된 키워드 없음'이라고 답해줘.\n\n"
+        String prompt = "지정된 키워드 목록에서 요약문과 가장 관련있는 최대 5개의 키워드를 추출해줘." +
+                "반드시 지정된 키워드 목록 안에 있어야 해. 반드시 224개의 키워드를 모두 확인하고 그 중에서 선택해줘." +
+                "각 키워드를 콤마로 구분해서 제공해줘." +
+                "가장 중요한 키워드부터 순서대로 나열해줘. 관련된 키워드가 없다면 '관련된 키워드 없음'이라고 답해줘.\n\n"
                 + "지정된 키워드: " + String.join(", ", existingKeywords) + "\n\n" + "요약: " + summaryText;
 
         String openAiResponse = openAiService.askOpenAi(prompt);
+        System.out.println("OpenAI Prompt : " + prompt + "\n------------\nOpenAI Response: " + openAiResponse);
 
         // API응답 키워드 리스트로 변환
         String[] keywords = openAiResponse.split(",");
