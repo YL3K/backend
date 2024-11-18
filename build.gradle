@@ -79,8 +79,7 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.4.7'
     
     // 웹소켓
-    //implementation 'org.springframework.boot:spring-boot-starter-websocket'
-    implementation group: 'com.corundumstudio.socketio', name: 'netty-socketio', version: '2.0.9'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
     // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
