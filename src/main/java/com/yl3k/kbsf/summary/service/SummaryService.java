@@ -3,6 +3,8 @@ package com.yl3k.kbsf.summary.service;
 import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.global.openai.service.OpenAiService;
+import com.yl3k.kbsf.stt.collection.FullText;
+import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.summary.dto.SummaryRequestDTO;
 import com.yl3k.kbsf.summary.dto.SummaryResponseDTO;
 import com.yl3k.kbsf.summary.entity.Keyword;
@@ -28,17 +30,26 @@ public class SummaryService {
     private final CounselRoomRepository counselRoomRepository;
     private final KeywordRepository keywordRepository;
     private final SummaryKeywordRepository summaryKeywordRepository;
+    private final FullTextRepository fullTextRepository;
 
-    public SummaryResponseDTO createSummary(SummaryRequestDTO request){
-        CounselRoom counselRoom = counselRoomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid room ID: " + request.getRoomId()));
+    public Map<String, String> createSummary(Long roomId){
+        CounselRoom counselRoom = counselRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid room ID: " + roomId));
+
+        // MongoDB에서 roomId를 사용해 text 조회
+        FullText fullText = fullTextRepository.findByRoomId(roomId);
+        if (fullText == null) {
+            throw new IllegalArgumentException("Text not found for room ID: " + roomId);
+        }
+
+        String text = fullText.getFullText();
 
         //요약 생성 - OpenAI API
         String prompt = "다음 대화를 요약해줘.\n"
                 + "1. 한 줄로 요약. 제목느낌으로 명사형 요약\n"
                 + "2. 1000자 이내로 요약\n"
                 + "응답 형식은 한 줄로 요약한 내용을 먼저 적고, 줄바꿈을 한번만 하여 바로 아랫줄에 1000자 이내로 요약한 내용을 적어줘.\n\n"
-                + request.getText();
+                + text;
 
         String openAiResponse = openAiService.askOpenAi(prompt);
 
@@ -59,8 +70,11 @@ public class SummaryService {
                 .build();
         summaryRepository.save(summary);
 
-        //Summary 결과 반환
-        return new SummaryResponseDTO(summaryText, summaryShort);
+        Map<String, String> response = new HashMap<>();
+        response.put("summaryShort", summaryShort);
+        response.put("summaryText", summaryText);
+
+        return response;
     }
 
     public Map<String, Object> createKeywords(Long summaryId){
