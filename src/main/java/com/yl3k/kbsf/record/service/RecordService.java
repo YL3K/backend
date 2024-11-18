@@ -1,14 +1,15 @@
 package com.yl3k.kbsf.record.service;
 
+import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.counsel.repository.UserCounselRoomRepository;
 import com.yl3k.kbsf.global.response.error.ApplicationError;
 import com.yl3k.kbsf.global.response.exception.ApplicationException;
 import com.yl3k.kbsf.record.dto.*;
 import com.yl3k.kbsf.record.entity.Feedback;
-import com.yl3k.kbsf.record.entity.FullText;
 import com.yl3k.kbsf.record.entity.Memo;
 import com.yl3k.kbsf.record.repository.FeedbackRepository;
+import com.yl3k.kbsf.stt.collection.FullText;
 import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.record.repository.MemoRepository;
 import com.yl3k.kbsf.summary.entity.Keyword;
@@ -115,21 +116,26 @@ public class RecordService {
         Summary summary = summaryRepository.findBySummaryId(summaryId)
                 .orElseThrow(() -> new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND));
 
-        Long roomId = summary.getCounselRoom().getRoomId();
+        CounselRoom counselRoom = summary.getCounselRoom();
+        if (counselRoom == null) {
+            throw new ApplicationException(ApplicationError.COUNSEL_ROOM_NOT_FOUND);
+        }
+
+        Long roomId = counselRoom.getRoomId();
         LocalDateTime closedAt = counselRoomRepository.findClosedAtByRoomId(roomId);
 
-        List<Integer> userIds = userCounselRoomRepository.findUserIdsByRoomId(roomId);
-        List<User> counselors = userRepository.findCounselorsByIds(userIds);
-        User customer = userRepository.findCustomerByRoomId(roomId);
+        List<Integer> userIds = userCounselRoomRepository.findUserIdsByRoomId(roomId)
+                .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
+
+        User counselors = userRepository.findCounselorsByIds(userIds)
+                .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
+
+        User customer = userRepository.findCustomerByRoomId(roomId)
+                .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
 
         List<Memo> memos = memoRepository.findBySummaryId(summaryId);
         List<MemoResponseDTO> memoDtos = memos.stream()
-                .map(memo -> new MemoResponseDTO(
-                        memo.getMemoId(),
-                        memo.getMemo(),
-                        memo.getCreatedAt(),
-                        memo.getUpdatedAt()
-                ))
+                .map(memo -> new MemoResponseDTO(memo.getMemoId(), memo.getMemo(), memo.getCreatedAt(), memo.getUpdatedAt()))
                 .collect(Collectors.toList());
 
         List<Feedback> feedback = feedbackRepository.findBySummaryId(summaryId);
@@ -140,17 +146,17 @@ public class RecordService {
                 .map(Keyword::getKeyword)
                 .collect(Collectors.toList());
 
-        List <FullText> fullText = fullTextRepository.findByRoomId(roomId);
+        FullText fullText = fullTextRepository.findByRoomId(roomId);
 
         return RecordDetailResponse.builder()
                 .summary(summary)
                 .counselDate(closedAt)
-                .counselor(counselors.get(0).getUsername())
+                .counselor(counselors.getUsername())
                 .customer(customer)
                 .memos(!memoDtos.isEmpty() ? memoDtos : Collections.emptyList())
                 .feedback(!feedback.isEmpty() ? feedback.get(0).getFeedback() : "")
                 .keywords(!keywordList.isEmpty() ? keywordList : Collections.emptyList())
-                .fullText(!fullText.isEmpty() ? fullText.get(0).getFullText() : "")
+                .fullText(fullText != null ? fullText.getFullText() : "")
                 .build();
     }
 
