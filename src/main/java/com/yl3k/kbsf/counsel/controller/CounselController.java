@@ -1,5 +1,6 @@
 package com.yl3k.kbsf.counsel.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yl3k.kbsf.counsel.dto.WaitingCustomerDto;
 import com.yl3k.kbsf.counsel.service.CounselService;
 import com.yl3k.kbsf.counsel.service.WaitingQueueService;
@@ -28,9 +29,9 @@ public class CounselController {
 
     // 고객 대기열 입장
     @PostMapping("/queue")
-    public ResponseEntity<ApiResponse<?>> addCustomer(){
+    public ResponseEntity<ApiResponse<?>> addCustomer(@RequestParam(value = "sessionId") String sessionId){
         User user = authService.getCurrentUser();
-        WaitingCustomerDto waitingCustomerDto = new WaitingCustomerDto(user.getUserId(), user.getUsername(),Timestamp.valueOf(LocalDateTime.now()));
+        WaitingCustomerDto waitingCustomerDto = new WaitingCustomerDto(user.getUserId(), sessionId, user.getUsername(),Timestamp.valueOf(LocalDateTime.now()));
 
         // userType이 "customer"일 때만 실행
         if (!"customer".equals(user.getUserType().toString())) {
@@ -60,7 +61,7 @@ public class CounselController {
 
     // 상담사 대기열 배정
     @PostMapping("/queue/assign")
-    public ResponseEntity<ApiResponse<?>> assignCustomer(){
+    public ResponseEntity<ApiResponse<?>> assignCustomer() throws JsonProcessingException {
         User user = authService.getCurrentUser();
 
         // userType이 "counselor"일 때만 실행
