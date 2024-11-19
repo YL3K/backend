@@ -14,9 +14,11 @@ import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.record.repository.MemoRepository;
 import com.yl3k.kbsf.summary.entity.Keyword;
 import com.yl3k.kbsf.summary.entity.Summary;
+import com.yl3k.kbsf.summary.entity.Url;
 import com.yl3k.kbsf.summary.repository.KeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
+import com.yl3k.kbsf.summary.repository.UrlRepository;
 import com.yl3k.kbsf.user.entity.User;
 import com.yl3k.kbsf.user.entity.UserType;
 import com.yl3k.kbsf.user.repository.UserRepository;
@@ -42,6 +44,7 @@ public class RecordService {
     private final MemoRepository memoRepository;
     private final FeedbackRepository feedbackRepository;
     private final FullTextRepository fullTextRepository;
+    private final UrlRepository urlRepository;
 
     public CustomerRecordResponse getFilteredSummariesForCustomer(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
 
@@ -131,9 +134,10 @@ public class RecordService {
 
         User counselors = userRepository.findCounselorsByIds(userIds)
                 .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
-
+        System.out.println("counselors : "+ counselors.getUsername());
         User customer = userRepository.findCustomerByRoomId(roomId)
                 .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
+        System.out.println("customer : "+ customer.getUsername());
 
         List<Memo> memos = memoRepository.findBySummaryId(summaryId);
         List<MemoResponseDTO> memoDtos = memos.stream()
@@ -143,9 +147,11 @@ public class RecordService {
         List<Feedback> feedback = feedbackRepository.findBySummaryId(summaryId);
 
         List<Integer> keywordIds = summaryKeywordRepository.findKeywordIdsBySummaryId(summaryId);
-        List<Keyword> keywords = keywordRepository.findKeywordsByIds(keywordIds);
-        List<String> keywordList = keywords.stream()
-                .map(Keyword::getKeyword)
+        List<Object[]> keywordAndUrls = keywordRepository.findKeywordsAndUrls(keywordIds);
+
+
+        List<KeywordUrlResponseDTO> keywordUrlList = keywordAndUrls.stream()
+                .map(record -> new KeywordUrlResponseDTO((String) record[0], (String) record[1]))
                 .collect(Collectors.toList());
 
         FullText fullText = fullTextRepository.findByRoomId(roomId);
@@ -157,7 +163,7 @@ public class RecordService {
                 .customer(customer)
                 .memos(!memoDtos.isEmpty() ? memoDtos : Collections.emptyList())
                 .feedback(!feedback.isEmpty() ? feedback.get(0).getFeedback() : "")
-                .keywords(!keywordList.isEmpty() ? keywordList : Collections.emptyList())
+                .keywords(!keywordUrlList.isEmpty() ? keywordUrlList : Collections.emptyList())
                 .fullText(fullText != null ? fullText.getFullText() : "")
                 .build();
     }
