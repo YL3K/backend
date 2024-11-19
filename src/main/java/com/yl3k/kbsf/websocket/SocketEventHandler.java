@@ -26,7 +26,12 @@ public class SocketEventHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         logger.info("{} connected", session.getId());
+        logger.info(String.valueOf(session));
         users.put(session.getId(), session);
+        Map<String, String> curUser = new HashMap<>();
+        curUser.put("userSessionId", session.getId());
+        String jsonMessage = objectMapper.writeValueAsString(curUser);
+        sendMessageToUser(session.getId(), jsonMessage);
     }
 
     @Override
@@ -114,7 +119,13 @@ public class SocketEventHandler extends TextWebSocketHandler {
     // 대기열 업데이트를 모든 클라이언트에 전송하는 메서드
     public void broadcastQueueUpdate(List<WaitingCustomerDto> waitingQueues) {
         try {
-            String jsonMessage = objectMapper.writeValueAsString(waitingQueues);
+            Map<String, String> sendMsg = new HashMap<>();
+            sendMsg.put("type", "queue_update");
+            String queue = objectMapper.writeValueAsString(waitingQueues);
+            sendMsg.put("queue", queue);
+
+            String jsonMessage = objectMapper.writeValueAsString(sendMsg);
+
             users.values().forEach(user -> {
                 try {
                     if (user.isOpen()) {
@@ -129,6 +140,20 @@ public class SocketEventHandler extends TextWebSocketHandler {
             logger.error("Error serializing queue update: {}", e.getMessage());
         }
     }
+
+    // 특정 사용자에게 메시지 전송
+    public void sendMessageToUser(String sessionId, String message) {
+        WebSocketSession session = users.get(sessionId);
+        if (session != null && session.isOpen()) {
+            try {
+                session.sendMessage(new TextMessage(message));
+                logger.info("Message sent to user {}: {}", sessionId, message);
+            } catch (IOException e) {
+                logger.error("Failed to send message to user {}: {}", sessionId, e.getMessage());
+            }
+        }
+    }
+
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {

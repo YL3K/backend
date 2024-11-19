@@ -1,5 +1,7 @@
 package com.yl3k.kbsf.counsel.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yl3k.kbsf.counsel.dto.WaitingCustomerDto;
 import com.yl3k.kbsf.counsel.repository.WaitingQueueRepository;
 import com.yl3k.kbsf.websocket.SocketEventHandler;
@@ -7,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -16,6 +20,7 @@ public class WaitingQueueService {
 
     private final WaitingQueueRepository waitingQueueRepository;
     private final SocketEventHandler socketEventHandler; // SocketEventHandler 주입
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void addCustomer(WaitingCustomerDto customer) {
         // 대기열에 이미 존재하는지 확인
@@ -35,9 +40,15 @@ public class WaitingQueueService {
         return waitingQueueRepository.getWaitingQueues(limit);
     }
 
-    public WaitingCustomerDto assignCustomer() {
+    public WaitingCustomerDto assignCustomer() throws JsonProcessingException {
         WaitingCustomerDto assignedCustomer = waitingQueueRepository.assignCustomer();
         sendQueueUpdate(); // 대기열 상태 변경 후 전송
+
+        // assigned customer에게 message 전송
+        Map<String, String> curUser = new HashMap<>();
+        curUser.put("type", "queue_assign");
+        String jsonMessage = objectMapper.writeValueAsString(curUser);
+        socketEventHandler.sendMessageToUser(assignedCustomer.getSessionId(), jsonMessage);
         return assignedCustomer;
     }
 
