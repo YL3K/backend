@@ -111,8 +111,8 @@ public class AnalysisController {
     }
 
     @GetMapping("/keywords/recent/{userId}")
-    public ResponseEntity<List<String>> getKeywordRecent(@PathVariable Long userId) {
-        List<String> keywords = analysisService.getKeywordsRecent(userId);
+    public ResponseEntity<List<Object[]>> getKeywordRecent(@PathVariable Long userId) {
+        List<Object[]> keywords = analysisService.getKeywordsRecent(userId);
 
         if (keywords.isEmpty()) {
             return ResponseEntity.noContent().build(); // 데이터가 없을 경우 204 반환

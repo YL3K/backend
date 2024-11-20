@@ -51,10 +51,11 @@ public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
             nativeQuery = true)
     List<Object[]> findTop5KeywordsWithUrlsByUser(@Param("userId") Long userId);
 
-    @Query(value = "SELECT k.keyword " +
+    @Query(value = "SELECT k.keyword, u.url " +
             "FROM keyword k " +
             "JOIN summary_keyword sk ON k.keyword_id = sk.keyword_id " +
             "JOIN summary s ON sk.summary_id = s.summary_id " +
+            "LEFT JOIN url u ON k.keyword_id = u.keyword_id " +
             "WHERE s.room_id = (" +
             "   SELECT ucr.room_id " +
             "   FROM user_counsel_room ucr " +
@@ -64,5 +65,6 @@ public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
             "   LIMIT 1" +
             ") " +
             "ORDER BY k.keyword ASC", nativeQuery = true)
-    List<String> findKeywordsByMostRecentRoom(@Param("userId") Long userId);
+    List<Object[]> findKeywordsWithUrlsByMostRecentRoom(@Param("userId") Long userId);
+
 }
