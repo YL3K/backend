@@ -5,6 +5,8 @@ import com.yl3k.kbsf.global.response.response.ApiResponse;
 import com.yl3k.kbsf.record.dto.*;
 import com.yl3k.kbsf.record.entity.Memo;
 import com.yl3k.kbsf.record.service.RecordService;
+import com.yl3k.kbsf.user.entity.User;
+import com.yl3k.kbsf.user.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -17,28 +19,31 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class RecordController {
 
+    private final AuthService authService;
     private final RecordService recordService;
+
+
 
     @GetMapping("/customer")
     public ResponseEntity<ApiResponse<CustomerRecordResponse>> getFilteredSummariesByUserAndDate(
-            @RequestParam Integer userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
     ) {
-
-        CustomerRecordResponse response = recordService.getFilteredSummariesForCustomer(userId, startDate, endDate);
+        User user = authService.getCurrentUser();
+        Integer authUserId = user.getUserId();
+        CustomerRecordResponse response = recordService.getFilteredSummariesForCustomer(authUserId, startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/counselor")
     public ResponseEntity<ApiResponse<CounselorRecordResponse>> getFilteredSummariesByUserAndDate(
-            @RequestParam Integer userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) String customerName
     ) {
-
-        CounselorRecordResponse response = recordService.getFilteredSummariesForCounselor(userId, startDate, endDate, customerName);
+        User user = authService.getCurrentUser();
+        Integer authUserId = user.getUserId();
+        CounselorRecordResponse response = recordService.getFilteredSummariesForCounselor(authUserId, startDate, endDate, customerName);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -85,7 +90,9 @@ public class RecordController {
      */
     @PostMapping("/memo")
     public ResponseEntity<ApiResponse<Message>> saveMemo(@RequestBody MemoDTO memoDTO) {
-
+        User user = authService.getCurrentUser();
+        Integer authUserId = user.getUserId();
+        memoDTO.setUserId(authUserId);
         recordService.saveMemo(memoDTO);
         Message message = Message.builder().message("Memo created successfully.").build();
         return ResponseEntity.ok(ApiResponse.success(message));
@@ -115,12 +122,13 @@ public class RecordController {
         return ResponseEntity.ok(ApiResponse.success(message));
     }
 
-    @GetMapping("/test")
+    @GetMapping("/counselorResponse")
     public ResponseEntity<ApiResponse<CounselorResponseDTO>> test(
-            @RequestParam Integer userId,
             @RequestParam String choiceDate // "yyyy-MM" 형식으로 받음
     ){
-        CounselorResponseDTO result = recordService.getMonthlySummary(userId, choiceDate);
+        User user = authService.getCurrentUser();
+        Integer authUserId = user.getUserId();
+        CounselorResponseDTO result = recordService.getMonthlySummary(authUserId, choiceDate);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
