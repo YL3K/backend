@@ -4,6 +4,7 @@ import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.entity.UserCounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.counsel.repository.UserCounselRoomRepository;
+import com.yl3k.kbsf.summary.repository.KeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
 import com.yl3k.kbsf.user.entity.User;
@@ -31,6 +32,7 @@ public class AnalysisService {
     private final CounselRoomRepository counselRoomRepository;
     private final SummaryRepository summaryRepository;
     private final SummaryKeywordRepository summaryKeywordRepository;
+    private final KeywordRepository keywordRepository;
 
     //연령대 분석 - 전체
     public Map<String, Long> calculateConsultationCountByAgeGroup() {
@@ -184,6 +186,19 @@ public class AnalysisService {
         }
 
         return result;
+    }
+
+    //키워드 분석 - 유저별 top5
+    public List<Map<String, Object>> getTop5Keywords(Long userId){
+        List<Object[]> results = keywordRepository.findTop5KeywordsWithUrlsByUser(userId);
+
+        return results.stream()
+                .map(row -> Map.of(
+                        "keyword", row[0],
+                        "url", row[1],
+                        "usageCount", row[2]
+                )).toList();
+
     }
     
 
