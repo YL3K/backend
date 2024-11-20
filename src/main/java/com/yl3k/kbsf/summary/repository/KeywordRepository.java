@@ -38,4 +38,16 @@ public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
             "WHERE k.keywordId IN :keywordIds")
     List<Object[]> findKeywordsAndUrls(@Param("keywordIds") List<Integer> keywordIds);
 
+    @Query(value = "SELECT k.keyword, u.url, COUNT(k.keyword_id) AS usage_count " +
+            "FROM keyword k " +
+            "JOIN summary_keyword sk ON k.keyword_id = sk.keyword_id " +
+            "JOIN summary s ON sk.summary_id = s.summary_id " +
+            "JOIN user_counsel_room ucr ON s.room_id = ucr.room_id " +
+            "LEFT JOIN url u ON k.keyword_id = u.keyword_id " +
+            "WHERE ucr.user_id = :userId " +
+            "GROUP BY k.keyword, u.url " +
+            "ORDER BY usage_count DESC, k.keyword ASC " +
+            "LIMIT 5",
+            nativeQuery = true)
+    List<Object[]> findTop5KeywordsWithUrlsByUser(@Param("userId") Long userId);
 }
