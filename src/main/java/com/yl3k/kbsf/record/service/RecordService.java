@@ -14,9 +14,11 @@ import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.record.repository.MemoRepository;
 import com.yl3k.kbsf.summary.entity.Keyword;
 import com.yl3k.kbsf.summary.entity.Summary;
+import com.yl3k.kbsf.summary.entity.Url;
 import com.yl3k.kbsf.summary.repository.KeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
+import com.yl3k.kbsf.summary.repository.UrlRepository;
 import com.yl3k.kbsf.user.entity.User;
 import com.yl3k.kbsf.user.entity.UserType;
 import com.yl3k.kbsf.user.repository.UserRepository;
@@ -24,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,6 +44,7 @@ public class RecordService {
     private final MemoRepository memoRepository;
     private final FeedbackRepository feedbackRepository;
     private final FullTextRepository fullTextRepository;
+    private final UrlRepository urlRepository;
 
     public CustomerRecordResponse getFilteredSummariesForCustomer(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
 
@@ -129,9 +134,10 @@ public class RecordService {
 
         User counselors = userRepository.findCounselorsByIds(userIds)
                 .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
-
+        System.out.println("counselors : "+ counselors.getUsername());
         User customer = userRepository.findCustomerByRoomId(roomId)
                 .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
+        System.out.println("customer : "+ customer.getUsername());
 
         List<Memo> memos = memoRepository.findBySummaryId(summaryId);
         List<MemoResponseDTO> memoDtos = memos.stream()
@@ -141,9 +147,11 @@ public class RecordService {
         List<Feedback> feedback = feedbackRepository.findBySummaryId(summaryId);
 
         List<Integer> keywordIds = summaryKeywordRepository.findKeywordIdsBySummaryId(summaryId);
-        List<Keyword> keywords = keywordRepository.findKeywordsByIds(keywordIds);
-        List<String> keywordList = keywords.stream()
-                .map(Keyword::getKeyword)
+        List<Object[]> keywordAndUrls = keywordRepository.findKeywordsAndUrls(keywordIds);
+
+
+        List<KeywordUrlResponseDTO> keywordUrlList = keywordAndUrls.stream()
+                .map(record -> new KeywordUrlResponseDTO((String) record[0], (String) record[1]))
                 .collect(Collectors.toList());
 
         FullText fullText = fullTextRepository.findByRoomId(roomId);
@@ -155,7 +163,7 @@ public class RecordService {
                 .customer(customer)
                 .memos(!memoDtos.isEmpty() ? memoDtos : Collections.emptyList())
                 .feedback(!feedback.isEmpty() ? feedback.get(0).getFeedback() : "")
-                .keywords(!keywordList.isEmpty() ? keywordList : Collections.emptyList())
+                .keywords(!keywordUrlList.isEmpty() ? keywordUrlList : Collections.emptyList())
                 .fullText(fullText != null ? fullText.getFullText() : "")
                 .build();
     }
@@ -228,4 +236,59 @@ public class RecordService {
 
         memoRepository.save(existingMemo);
     }
+
+
+    public CounselorResponseDTO getMonthlySummary(Integer userId, String choiceDate){
+        // 0. choiceDate를 기준으로 startDate와 endDate 구하기
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        YearMonth yearMonth = YearMonth.parse(choiceDate, formatter);
+        LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay(); // 월 첫째 날 00:00:00
+        LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59); // 월 마지막 날 23:59:59
+
+
+        // 1. 입력받은 userId 기준 roomId들 조회
+        List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
+        System.out.println("roomIds : " + roomIds);
+
+        if (roomIds.isEmpty()) {
+            return CounselorResponseDTO.builder()
+                    .totalCount(0)
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 2. roomId와 날짜를 기준으로 roomId들 거르기 + 개수 구하기
+        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndRoomIds(roomIds, startDate, endDate);
+        int totalCount = filteredRoomIds.size();
+
+        if (filteredRoomIds.isEmpty()) {
+            return CounselorResponseDTO.builder()
+                    .totalCount(0)
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 3. 걸러진 roomId 중 제일 최근 값을 활용하여 고객의 User정보 구하기 + roomId로 상담한 날짜 구하기
+        Long recentRoomId = filteredRoomIds.get(0);
+        LocalDateTime recentCloseDate =  counselRoomRepository.findClosedAtByRoomId(recentRoomId);
+
+        Optional<User> recentUser = userRepository.findCustomerByRoomId(recentRoomId);
+        String userName = recentUser.get().getUsername();
+
+        // 구한 값들 Dto에 적용
+        CounselorResponseDTO responseCounselorDto = CounselorResponseDTO.builder()
+                .totalCount(totalCount)
+                .customerName(userName)
+                .customerDate(recentCloseDate)
+                .build();
+
+        return responseCounselorDto;
+
+
+    }
+
 }

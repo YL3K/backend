@@ -19,6 +19,6 @@ public class RecordDetailResponse {
     private User customer;
     private List<MemoResponseDTO> memos;
     private String feedback;
-    private List<String> keywords;
+    private List<KeywordUrlResponseDTO> keywords;
     private String fullText;
 }

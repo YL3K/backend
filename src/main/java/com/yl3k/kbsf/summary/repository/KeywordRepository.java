@@ -32,7 +32,10 @@ public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
      * @param keywordIds 조회할 keywordId 목록
      * @return keywordId 목록에 해당하는 Keyword 엔티티 리스트
      */
-    @Query("SELECT k FROM Keyword k WHERE k.keywordId IN :keywordIds")
-    List<Keyword> findKeywordsByIds(@Param("keywordIds") List<Integer> keywordIds);
+    @Query("SELECT k.keyword, u.url " +
+            "FROM Keyword k " +
+            "LEFT JOIN Url u ON k.keywordId = u.keyword.keywordId " +
+            "WHERE k.keywordId IN :keywordIds")
+    List<Object[]> findKeywordsAndUrls(@Param("keywordIds") List<Integer> keywordIds);
 
 }
