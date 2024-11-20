@@ -50,4 +50,19 @@ public interface KeywordRepository extends JpaRepository<Keyword, Integer> {
             "LIMIT 5",
             nativeQuery = true)
     List<Object[]> findTop5KeywordsWithUrlsByUser(@Param("userId") Long userId);
+
+    @Query(value = "SELECT k.keyword " +
+            "FROM keyword k " +
+            "JOIN summary_keyword sk ON k.keyword_id = sk.keyword_id " +
+            "JOIN summary s ON sk.summary_id = s.summary_id " +
+            "WHERE s.room_id = (" +
+            "   SELECT ucr.room_id " +
+            "   FROM user_counsel_room ucr " +
+            "   JOIN counsel_room cr ON ucr.room_id = cr.room_id " +
+            "   WHERE ucr.user_id = :userId " +
+            "   ORDER BY cr.created_at DESC " +
+            "   LIMIT 1" +
+            ") " +
+            "ORDER BY k.keyword ASC", nativeQuery = true)
+    List<String> findKeywordsByMostRecentRoom(@Param("userId") Long userId);
 }

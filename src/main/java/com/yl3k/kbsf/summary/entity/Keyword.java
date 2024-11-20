@@ -18,4 +18,6 @@ public class Keyword {
     private String keyword;
 
     private String field;
+
+    private String description;
 }

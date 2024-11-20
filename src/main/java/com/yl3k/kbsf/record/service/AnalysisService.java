@@ -201,6 +201,11 @@ public class AnalysisService {
                 )).toList();
 
     }
+
+    //키워드 분석 - 유저 최근 상담 키워드
+    public List<String> getKeywordsRecent(Long userId) {
+        return keywordRepository.findKeywordsByMostRecentRoom(userId);
+    }
     
 
     private String calculateAgeGroup(LocalDate birthDate) {
