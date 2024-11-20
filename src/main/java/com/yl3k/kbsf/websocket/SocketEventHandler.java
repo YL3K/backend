@@ -1,5 +1,7 @@
 package com.yl3k.kbsf.websocket;
 
+import com.yl3k.kbsf.counsel.dto.WaitingCustomerDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionService;
@@ -11,21 +13,26 @@ import org.springframework.web.socket.CloseStatus;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
 public class SocketEventHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketEventHandler.class);
-
-    // 사용자 - 세션 관리 맵과 사용자 - 방번호 관리 맵
     private final Map<String, WebSocketSession> users = new HashMap<>();
     private final Map<String, String> socketRoom = new HashMap<>();
+    private final ObjectMapper objectMapper = new ObjectMapper(); // Jackson ObjectMapper
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         logger.info("{} connected", session.getId());
+        logger.info(String.valueOf(session));
         users.put(session.getId(), session);
+        Map<String, String> curUser = new HashMap<>();
+        curUser.put("userSessionId", session.getId());
+        String jsonMessage = objectMapper.writeValueAsString(curUser);
+        sendMessageToUser(session.getId(), jsonMessage);
     }
 
     @Override
@@ -132,6 +139,42 @@ public class SocketEventHandler extends TextWebSocketHandler {
                 }
             }
         });
+    // 대기열 업데이트를 모든 클라이언트에 전송하는 메서드
+    public void broadcastQueueUpdate(List<WaitingCustomerDto> waitingQueues) {
+        try {
+            Map<String, String> sendMsg = new HashMap<>();
+            sendMsg.put("type", "queue_update");
+            String queue = objectMapper.writeValueAsString(waitingQueues);
+            sendMsg.put("queue", queue);
+
+            String jsonMessage = objectMapper.writeValueAsString(sendMsg);
+
+            users.values().forEach(user -> {
+                try {
+                    if (user.isOpen()) {
+                        user.sendMessage(new TextMessage(jsonMessage));
+                        logger.info("Broadcasting queue update: {}", jsonMessage);
+                    }
+                } catch (IOException e) {
+                    logger.error("Error broadcasting message: {}", e.getMessage());
+                }
+            });
+        } catch (IOException e) {
+            logger.error("Error serializing queue update: {}", e.getMessage());
+        }
+    }
+
+    // 특정 사용자에게 메시지 전송
+    public void sendMessageToUser(String sessionId, String message) {
+        WebSocketSession session = users.get(sessionId);
+        if (session != null && session.isOpen()) {
+            try {
+                session.sendMessage(new TextMessage(message));
+                logger.info("Message sent to user {}: {}", sessionId, message);
+            } catch (IOException e) {
+                logger.error("Failed to send message to user {}: {}", sessionId, e.getMessage());
+            }
+        }
     }
 
 

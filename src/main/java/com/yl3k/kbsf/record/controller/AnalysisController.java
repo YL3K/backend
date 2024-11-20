@@ -103,4 +103,10 @@ public class AnalysisController {
         List<Map<String, Object>> response = analysisService.getKeywordCountsRange(startDateTime, endDateTime);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/keywords/top5/{userId}")
+    public ResponseEntity<List<Map<String, Object>>> getTop5KeywordsWithUrl(@PathVariable Long userId){
+        List<Map<String, Object>> topKeywords = analysisService.getTop5Keywords(userId);
+        return ResponseEntity.ok(topKeywords);
+    }
 }

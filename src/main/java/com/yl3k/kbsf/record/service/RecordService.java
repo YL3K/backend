@@ -1,158 +1,105 @@
 package com.yl3k.kbsf.record.service;
 
+import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.repository.CounselRoomRepository;
 import com.yl3k.kbsf.counsel.repository.UserCounselRoomRepository;
-import com.yl3k.kbsf.record.dto.FeedbackDTO;
-import com.yl3k.kbsf.record.dto.MemoDTO;
-import com.yl3k.kbsf.record.dto.MemoResponseDTO;
+import com.yl3k.kbsf.global.response.error.ApplicationError;
+import com.yl3k.kbsf.global.response.exception.ApplicationException;
+import com.yl3k.kbsf.record.dto.*;
 import com.yl3k.kbsf.record.entity.Feedback;
-import com.yl3k.kbsf.record.entity.FullText;
 import com.yl3k.kbsf.record.entity.Memo;
 import com.yl3k.kbsf.record.repository.FeedbackRepository;
+import com.yl3k.kbsf.stt.collection.FullText;
 import com.yl3k.kbsf.stt.repository.FullTextRepository;
 import com.yl3k.kbsf.record.repository.MemoRepository;
 import com.yl3k.kbsf.summary.entity.Keyword;
 import com.yl3k.kbsf.summary.entity.Summary;
+import com.yl3k.kbsf.summary.entity.Url;
 import com.yl3k.kbsf.summary.repository.KeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryKeywordRepository;
 import com.yl3k.kbsf.summary.repository.SummaryRepository;
+import com.yl3k.kbsf.summary.repository.UrlRepository;
 import com.yl3k.kbsf.user.entity.User;
 import com.yl3k.kbsf.user.entity.UserType;
 import com.yl3k.kbsf.user.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RecordService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final UserCounselRoomRepository userCounselRoomRepository;
+    private final CounselRoomRepository counselRoomRepository;
+    private final SummaryRepository summaryRepository;
+    private final SummaryKeywordRepository summaryKeywordRepository;
+    private final KeywordRepository keywordRepository;
+    private final MemoRepository memoRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final FullTextRepository fullTextRepository;
+    private final UrlRepository urlRepository;
 
-    @Autowired
-    private UserCounselRoomRepository userCounselRoomRepository;
+    public CustomerRecordResponse getFilteredSummariesForCustomer(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
 
-    @Autowired
-    private CounselRoomRepository counselRoomRepository;
-
-    @Autowired
-    private SummaryRepository summaryRepository;
-
-    @Autowired
-    SummaryKeywordRepository summaryKeywordRepository;
-
-    @Autowired
-    KeywordRepository keywordRepository;
-
-    @Autowired
-    MemoRepository memoRepository;
-
-    @Autowired
-    FeedbackRepository feedbackRepository;
-
-    @Autowired
-    FullTextRepository fullTextRepository;
-
-
-    // User의 userType 확인 - 고객인 경우
-    public boolean isCustomer(Integer userId) {
-        // 1. userId를 통해 User 엔티티 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // 2. userType이 UserType.CUSTOMER인지 확인
-        return user.getUserType() == UserType.customer;
-    }
-
-    // User의 userType 확인 - 상담사인 경우
-    public boolean isCounselor(Integer userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return user.getUserType() == UserType.counselor;
-    }
-
-
-    /**
-     * 고객의 경우: 상담 요약과 키워드 조회
-     */
-    public Map<String, Object> getFilteredSummariesForCustomer(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
-        String userType = "customer";
-        // 1. userId에 해당하는 roomId 목록 조회
         List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
-
-        // 2. 날짜 필터링된 roomIds 조회
-        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndRoomIds(roomIds, startDate, endDate);
-
-        // 3. 필터링 된 roomIds를 토대로 summaries 조회
+        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndCustomer(roomIds, startDate, endDate);
         List<Summary> summaries = summaryRepository.findByRoomIds(filteredRoomIds);
-
-        // 4. summaries에서 summaryIds 추출 후 키워드 랭킹 조회
         List<Long> summaryIds = summaries.stream()
                 .map(Summary::getSummaryId)
                 .collect(Collectors.toList());
-
-        // 5. 가장 빈도가 높은 키워드 추출
         String topKeyword = getMostFrequentKeyword(summaryIds);
 
-        // 결과 맵 생성
-        Map<String, Object> result = new HashMap<>();
-        result.put("count", summaries.size());
-        result.put("topKeyword",topKeyword);
-        result.put("summaries", summaries);
-        result.put("userType",userType);
-
-
-        return result;
+        return CustomerRecordResponse.builder()
+                .count(summaries.size())
+                .topKeyword(topKeyword)
+                .summaries(summaries)
+                .userType(UserType.customer)
+                .build();
     }
 
-    /**
-     * 상담사의 경우: 상담 건수 및 고객명 필터링 조회
-     */
-    public Map<String, Object> getFilteredSummariesForCounselor(Integer counselorId, LocalDateTime startDate, LocalDateTime endDate, String customerName) {
-        String userType = "counselor";
-        List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(counselorId);
-        int totalCount = counselRoomRepository.countByRoomIdsAndDateRange(roomIds, startDate, endDate);
+    public CounselorRecordResponse getFilteredSummariesForCounselor(Integer counselorId, LocalDateTime startDate, LocalDateTime endDate, String customerName) {
 
-        // 만약 추가 검색 있는 경우 (이름...)
+        List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(counselorId);
+
+        Integer totalCount = counselRoomRepository.findRoomIdsByDateRangeCounselor(roomIds, startDate, endDate).size();
+
         List<Long> filteredRoomIds = (customerName != null && !customerName.isEmpty())
                 ? userCounselRoomRepository.findRoomIdsByCounselorIdAndCustomerName(counselorId, customerName)
                 : roomIds;
 
+        List<SummaryInfo> summariesWithCustomerInfo = new ArrayList<>();
         List<Summary> summaries = summaryRepository.findByRoomIdsAndDateRange(filteredRoomIds, startDate, endDate);
-        // 고객 정보를 포함한 summaries 리스트 생성
-        List<Map<String, Object>> summariesWithCustomerInfo = summaries.stream().map(summary -> {
-            Map<String, Object> summaryMap = new HashMap<>();
-            summaryMap.put("summaryId", summary.getSummaryId());
-            summaryMap.put("summaryText", summary.getSummaryText());
-            summaryMap.put("summaryShort", summary.getSummaryShort());
-            summaryMap.put("counselRoom", summary.getCounselRoom());
+        for (Summary summary : summaries) {
 
-            // roomId를 이용해 고객 userId를 조회하고, 고객 정보를 추가
             Long roomId = summary.getCounselRoom().getRoomId();
-            Integer customerId = userCounselRoomRepository.findCustomerIdByRoomId(roomId); // 고객 userId 조회
-            if (customerId != null) {
-                User customer = userRepository.findById(customerId)
-                        .orElseThrow(() -> new RuntimeException("Customer not found"));
-                Map<String, Object> userMap = new HashMap<>();
-                userMap.put("userId", customer.getUserId());
-                userMap.put("userName", customer.getUsername());
-                summaryMap.put("user", userMap); // 고객 정보를 user 필드에 추가
-            }
-            return summaryMap;
-        }).collect(Collectors.toList());
+            Integer customerId = userCounselRoomRepository.findCustomerIdByRoomId(roomId);
+            User customer = userRepository.findById(customerId)
+                    .orElseThrow(() -> new ApplicationException(ApplicationError.USER_NOT_FOUND));
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("filteredCounselCount", summaries.size());
-        result.put("totalCounselCount", totalCount);
-        result.put("summaries", summariesWithCustomerInfo);
-        result.put("userType",userType);
-        return result;
+            SummaryInfo info = SummaryInfo.builder()
+                    .summaryId(summary.getSummaryId())
+                    .counselRoom(summary.getCounselRoom())
+                    .summaryText(summary.getSummaryText())
+                    .summaryShort(summary.getSummaryShort())
+                    .customerName(customer.getUsername())
+                    .build();
+
+            summariesWithCustomerInfo.add(info);
+        }
+
+        return CounselorRecordResponse.builder()
+                .filteredCounselCount(summaries.size())
+                .totalCounselCount(totalCount)
+                .summaries(summariesWithCustomerInfo)
+                .userType(UserType.counselor)
+                .build();
     }
 
     /**
@@ -169,90 +116,80 @@ public class RecordService {
         return null; // 키워드가 없는 경우
     }
 
-    /**
-     * 요약 아이디 별 상세 내용
-     */
-    public Map<String, Object> getDetailedCounselInfo(Long summaryId) {
-        Map<String, Object> result = new HashMap<>();
+    public RecordDetailResponse getDetailedCounselInfo(Long summaryId) {
 
-        // 1. Summary 정보 조회
         Summary summary = summaryRepository.findBySummaryId(summaryId)
-                .orElseThrow(() -> new RuntimeException("Summary not found"));
-        result.put("summary", summary);
+                .orElseThrow(() -> new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND));
 
-        // 2. 상담 날짜 조회
-        Long roomId = summary.getCounselRoom().getRoomId();
+        CounselRoom counselRoom = summary.getCounselRoom();
+        if (counselRoom == null) {
+            throw new ApplicationException(ApplicationError.COUNSEL_ROOM_NOT_FOUND);
+        }
+
+        Long roomId = counselRoom.getRoomId();
         LocalDateTime closedAt = counselRoomRepository.findClosedAtByRoomId(roomId);
-        result.put("counselDate", closedAt);
 
-        // 3. 상담사 및 고객 정보 조회
-        List<Integer> userIds = userCounselRoomRepository.findUserIdsByRoomId(roomId);
+        List<Integer> userIds = userCounselRoomRepository.findUserIdsByRoomId(roomId)
+                .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
 
-        // 3-1. 상담사 이름 조회
-        List<User> counselors = userRepository.findCounselorsByIds(userIds);
-        result.put("counselor", counselors.get(0).getUsername());
-        // 3-2. 고객 정보 조회
-        User customer = userRepository.findCustomerByRoomId(roomId);
-        result.put("customer", customer);
+        User counselors = userRepository.findCounselorsByIds(userIds)
+                .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
+        System.out.println("counselors : "+ counselors.getUsername());
+        User customer = userRepository.findCustomerByRoomId(roomId)
+                .orElseThrow(() -> new ApplicationException(ApplicationError.COUNSEL_MEMBER_NOT_FOUND));
+        System.out.println("customer : "+ customer.getUsername());
 
-        // 4. 메모 정보 조회
         List<Memo> memos = memoRepository.findBySummaryId(summaryId);
         List<MemoResponseDTO> memoDtos = memos.stream()
-                .map(memo -> new MemoResponseDTO(
-                        memo.getMemoId(),
-                        memo.getMemo(),
-                        memo.getCreatedAt(),
-                        memo.getUpdatedAt()
-                ))
+                .map(memo -> new MemoResponseDTO(memo.getMemoId(), memo.getMemo(), memo.getCreatedAt(), memo.getUpdatedAt()))
                 .collect(Collectors.toList());
-        result.put("memos", memoDtos.isEmpty() ? Collections.emptyList() : memoDtos);
 
-        // 5. 상담사 피드백 정보 조회
         List<Feedback> feedback = feedbackRepository.findBySummaryId(summaryId);
-        result.put("feedback", !feedback.isEmpty() ? feedback.get(0).getFeedback() : Collections.emptyList());
 
-        // 6. 요약 키워드 조회
         List<Integer> keywordIds = summaryKeywordRepository.findKeywordIdsBySummaryId(summaryId);
-        List<Keyword> keywords = keywordRepository.findKeywordsByIds(keywordIds);
-        List<String> keywordList = keywords.stream()
-                .map(Keyword::getKeyword)
+        List<Object[]> keywordAndUrls = keywordRepository.findKeywordsAndUrls(keywordIds);
+
+
+        List<KeywordUrlResponseDTO> keywordUrlList = keywordAndUrls.stream()
+                .map(record -> new KeywordUrlResponseDTO((String) record[0], (String) record[1]))
                 .collect(Collectors.toList());
 
-        // 6-4. 결과 맵에 키워드 목록 추가
-        result.put("keywords", keywordList.isEmpty() ? Collections.emptyList() : keywordList);
+        FullText fullText = fullTextRepository.findByRoomId(roomId);
 
-        // 7. MongoDB에서 상담 내용 조회
-        List <FullText> fullText= fullTextRepository.findByRoomId(roomId);
-
-        result.put("fullText", fullText.isEmpty()? Collections.emptyList() : fullText.get(0).getFullText());
-
-
-
-        return result;
+        return RecordDetailResponse.builder()
+                .summary(summary)
+                .counselDate(closedAt)
+                .counselor(counselors.getUsername())
+                .customer(customer)
+                .memos(!memoDtos.isEmpty() ? memoDtos : Collections.emptyList())
+                .feedback(!feedback.isEmpty() ? feedback.get(0).getFeedback() : "")
+                .keywords(!keywordUrlList.isEmpty() ? keywordUrlList : Collections.emptyList())
+                .fullText(fullText != null ? fullText.getFullText() : "")
+                .build();
     }
 
     /**
      * 메모 삭제
      */
-
     public void deleteSummary(Long summaryId) {
         if (!summaryRepository.existsById(summaryId)) {
-            throw new IllegalArgumentException("요약 ID가 유효하지 않습니다.");
+            throw new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND);
         }
-        summaryRepository.deleteById(summaryId);
+        Optional<Summary> summary = summaryRepository.findBySummaryId(summaryId);
+        Long roomId = summary.get().getCounselRoom().getRoomId();
+        int updatedRows = counselRoomRepository.updateIsHiddenByRoomId(roomId);
+        if (updatedRows == 0) {
+            throw new ApplicationException(ApplicationError.COUNSEL_ROOM_NOT_FOUND);
+        }
     }
-
-
-
 
     /**
      * 상담사 피드백 저장
      */
-
     public void saveFeedback(FeedbackDTO feedbackDTO) {
         // Summary 조회
         Summary summary = summaryRepository.findById(feedbackDTO.getSummaryId())
-                .orElseThrow(() -> new IllegalArgumentException("Summary ID가 유효하지 않습니다."));
+                .orElseThrow(() -> new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND));
 
         Feedback feedback = Feedback.builder()
                 .summary(summary)
@@ -265,14 +202,13 @@ public class RecordService {
     /**
      * 고객 메모 저장
      */
-
     public void saveMemo(MemoDTO memoDTO) {
         // Summary 조회
         Summary summary = summaryRepository.findById(memoDTO.getSummaryId())
-                .orElseThrow(() -> new IllegalArgumentException("Summary ID가 유효하지 않습니다."));
+                .orElseThrow(() -> new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND));
 
         User user = userRepository.findById(memoDTO.getUserId())
-                .orElseThrow(()-> new IllegalArgumentException("User ID가 유효하지 않습니다."));
+                .orElseThrow(()-> new ApplicationException(ApplicationError.USER_NOT_FOUND));
 
         Memo insertMemo = Memo.builder()
                 .summary(summary)
@@ -286,10 +222,9 @@ public class RecordService {
     /**
      * 메모 삭제
      */
-
     public void deleteMemo(Long memoId) {
         if (!memoRepository.existsById(memoId)) {
-            throw new IllegalArgumentException("메모 ID가 유효하지 않습니다.");
+            throw new ApplicationException(ApplicationError.MEMO_NOT_FOUND);
         }
         memoRepository.deleteById(memoId);
     }
@@ -299,7 +234,7 @@ public class RecordService {
      */
     public void updateMemo(Long memoId, Memo updatedMemo) {
         Memo existingMemo = memoRepository.findById(memoId)
-                .orElseThrow(() -> new IllegalArgumentException("메모 ID가 유효하지 않습니다."));
+                .orElseThrow(() -> new ApplicationException(ApplicationError.MEMO_NOT_FOUND));
 
         existingMemo.setMemo(updatedMemo.getMemo());
         existingMemo.setUpdatedAt(LocalDateTime.now());
@@ -307,5 +242,58 @@ public class RecordService {
         memoRepository.save(existingMemo);
     }
 
+
+    public CounselorResponseDTO getMonthlySummary(Integer userId, String choiceDate){
+        // 0. choiceDate를 기준으로 startDate와 endDate 구하기
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        YearMonth yearMonth = YearMonth.parse(choiceDate, formatter);
+        LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay(); // 월 첫째 날 00:00:00
+        LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59); // 월 마지막 날 23:59:59
+
+
+        // 1. 입력받은 userId 기준 roomId들 조회
+        List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
+        System.out.println("roomIds : " + roomIds);
+
+        if (roomIds.isEmpty()) {
+            return CounselorResponseDTO.builder()
+                    .totalCount(0)
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 2. roomId와 날짜를 기준으로 roomId들 거르기 + 개수 구하기
+        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeCounselor(roomIds, startDate, endDate);
+        int totalCount = filteredRoomIds.size();
+
+        if (filteredRoomIds.isEmpty()) {
+            return CounselorResponseDTO.builder()
+                    .totalCount(0)
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 3. 걸러진 roomId 중 제일 최근 값을 활용하여 고객의 User정보 구하기 + roomId로 상담한 날짜 구하기
+        Long recentRoomId = filteredRoomIds.get(0);
+        LocalDateTime recentCloseDate =  counselRoomRepository.findClosedAtByRoomId(recentRoomId);
+
+        Optional<User> recentUser = userRepository.findCustomerByRoomId(recentRoomId);
+        String userName = recentUser.get().getUsername();
+
+        // 구한 값들 Dto에 적용
+        CounselorResponseDTO responseCounselorDto = CounselorResponseDTO.builder()
+                .totalCount(totalCount)
+                .customerName(userName)
+                .customerDate(recentCloseDate)
+                .build();
+
+        return responseCounselorDto;
+
+
+    }
 
 }

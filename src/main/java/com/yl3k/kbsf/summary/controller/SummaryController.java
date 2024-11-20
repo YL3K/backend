@@ -17,9 +17,9 @@ public class SummaryController {
 
     private final SummaryService summaryService;
 
-    @PostMapping("/")
-    public ResponseEntity<ApiResponse<SummaryResponseDTO>> createSummary(@RequestBody SummaryRequestDTO request) {
-        SummaryResponseDTO response = summaryService.createSummary(request);
+    @PostMapping("/{roomId}")
+    public ResponseEntity<ApiResponse<Map<String, String>>> createSummary(@PathVariable Long roomId) {
+        Map<String, String> response = summaryService.createSummary(roomId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

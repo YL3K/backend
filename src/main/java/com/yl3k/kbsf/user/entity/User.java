@@ -53,8 +53,8 @@ public class User implements UserDetails {
 
     // UserDetails 생성자 추가
     @Builder
-    public User(String loginId, String password, UserType userType) {
-        this.loginId = loginId;
+    public User(Integer userId, String password, UserType userType) {
+        this.userId = userId;
         this.password = password;
         this.userType = userType;
         this.authorities = getDefaultAuthorities();

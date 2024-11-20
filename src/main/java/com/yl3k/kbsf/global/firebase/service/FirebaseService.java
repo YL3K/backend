@@ -5,7 +5,6 @@ import com.yl3k.kbsf.global.firebase.dto.*;
 import com.yl3k.kbsf.global.response.error.ApplicationError;
 import com.yl3k.kbsf.global.response.exception.ApplicationException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class FirebaseService {
 
     @Value("${google.refreshToken}")
@@ -39,21 +37,21 @@ public class FirebaseService {
     private final RestTemplate restTemplate;
 
     public void sendSummaryCompleteNotification(NotificationRequest notificationRequest) throws IOException {
-        sendNotification(notificationRequest, " 고객님의 상담 요약이 완료되었어요.");
+        sendNotification(notificationRequest, "요약 완료", " 고객님의 상담 요약이 완료되었어요.");
     }
 
     public void sendWaitingCompleteNotification(NotificationRequest notificationRequest) throws IOException {
-        sendNotification(notificationRequest, " 고객님의 상담 순서가 되었습니다. 3분 내로 입장하지 않으면 상담이 취소됩니다.");
+        sendNotification(notificationRequest, "대기 완료", " 고객님의 상담 순서가 되었습니다. 3분 내로 입장하지 않으면 상담이 취소됩니다.");
     }
 
-    private void sendNotification(NotificationRequest notificationRequest, String notificationMessage) throws IOException {
+    private void sendNotification(NotificationRequest notificationRequest, String title, String notificationMessage) throws IOException {
 
         String fcmToken = notificationRequest.getFcmToken();
         String userName = notificationRequest.getUserName();
         String googleAccessToken = getGoogleAccessToken();
 
         HttpHeaders headers = createHeaders(googleAccessToken);
-        Notification notification = createNotification(userName + notificationMessage);
+        Notification notification = createNotification(title, userName + notificationMessage);
 
         Message messageRequest = Message.builder()
                 .token(fcmToken)
@@ -73,10 +71,10 @@ public class FirebaseService {
         return headers;
     }
 
-    private Notification createNotification(String body) {
+    private Notification createNotification(String  title, String body) {
 
         return Notification.builder()
-                .title("KB 스타후르츠뱅크")
+                .title(title)
                 .body(body)
                 .build();
     }

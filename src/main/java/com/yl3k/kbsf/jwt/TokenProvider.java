@@ -98,8 +98,7 @@ public class TokenProvider {
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
-        // User 객체 생성 - loginId (claims.getSubject())와 userType 사용
-        User principal = new User(claims.getSubject(), "", userType);
+        User principal = new User(Integer.parseInt(claims.getSubject()), "", userType);
         principal.setUserName(userName); // username 추가
 
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);

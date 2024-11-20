@@ -3,9 +3,11 @@ package com.yl3k.kbsf.counsel.repository;
 import com.yl3k.kbsf.counsel.entity.CounselRoom;
 import com.yl3k.kbsf.counsel.entity.UserCounselRoom;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,8 +28,9 @@ public interface CounselRoomRepository extends JpaRepository<CounselRoom, Long> 
      * @param endDate 조회 종료 날짜
      * @return 필터링된 room ID 목록
      */
-    @Query("SELECT cr.roomId FROM CounselRoom cr WHERE cr.roomId IN :roomIds AND cr.closedAt BETWEEN :startDate AND :endDate")
-    List<Long> findRoomIdsByDateRangeAndRoomIds(
+    @Query("SELECT cr.roomId FROM CounselRoom cr WHERE cr.roomId IN :roomIds AND " +
+            "cr.isHidden = false AND cr.closedAt BETWEEN :startDate AND :endDate")
+    List<Long> findRoomIdsByDateRangeAndCustomer(
             @Param("roomIds") List<Long> roomIds,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
@@ -41,8 +44,8 @@ public interface CounselRoomRepository extends JpaRepository<CounselRoom, Long> 
      * @param endDate 조회 종료 날짜
      * @return 날짜 범위에 해당하는 총 상담 횟수
      */
-    @Query("SELECT COUNT(cr) FROM CounselRoom cr WHERE cr.roomId IN :roomIds AND cr.closedAt BETWEEN :startDate AND :endDate")
-    int countByRoomIdsAndDateRange(
+    @Query("SELECT cr.roomId FROM CounselRoom cr WHERE cr.roomId IN :roomIds AND cr.closedAt BETWEEN :startDate AND :endDate")
+    List<Long> findRoomIdsByDateRangeCounselor(
             @Param("roomIds") List<Long> roomIds,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
@@ -56,5 +59,11 @@ public interface CounselRoomRepository extends JpaRepository<CounselRoom, Long> 
      */
     @Query("SELECT cr.closedAt FROM CounselRoom cr WHERE cr.roomId = :roomId")
     LocalDateTime findClosedAtByRoomId(@Param("roomId") Long roomId);
+
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE CounselRoom cr SET cr.isHidden = true WHERE cr.roomId = :roomId")
+    int updateIsHiddenByRoomId(@Param("roomId") Long roomId);
 
 }
