@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 @EqualsAndHashCode
 public class WaitingCustomerDto {
     private long userId;
+    private String sessionId;
     private String userName;
     private Timestamp startTime;
 }

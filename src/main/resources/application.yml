@@ -8,6 +8,9 @@ spring:
   output:
     ansi:
       enabled: always
+server:
+  address: 0.0.0.0
+  port: 8080
 logging:
   level:
     com.yl3k: debug

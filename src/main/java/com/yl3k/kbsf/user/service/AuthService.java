@@ -11,9 +11,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.InvalidClassException;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -45,5 +50,16 @@ public class AuthService {
 
         return tokenProvider.generateTokenDto(authentication);
     }
+
+    public User getCurrentUser() {
+        // SecurityContext에서 현재 인증된 사용자 정보 가져오기
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        // userId로 사용자 정보 조회
+        Optional<User> user = userRepository.findByUserId(currentUser.getUserId());
+
+        // 사용자 정보가 없을 경우 예외 처리
+        return user.orElseThrow();
+    }
+
 
 }
