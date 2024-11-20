@@ -49,7 +49,7 @@ public class RecordService {
     public CustomerRecordResponse getFilteredSummariesForCustomer(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
 
         List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
-        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndRoomIds(roomIds, startDate, endDate);
+        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndCustomer(roomIds, startDate, endDate);
         List<Summary> summaries = summaryRepository.findByRoomIds(filteredRoomIds);
         List<Long> summaryIds = summaries.stream()
                 .map(Summary::getSummaryId)
@@ -68,7 +68,7 @@ public class RecordService {
 
         List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(counselorId);
 
-        Integer totalCount = counselRoomRepository.countByRoomIdsAndDateRange(roomIds, startDate, endDate);
+        Integer totalCount = counselRoomRepository.findRoomIdsByDateRangeCounselor(roomIds, startDate, endDate).size();
 
         List<Long> filteredRoomIds = (customerName != null && !customerName.isEmpty())
                 ? userCounselRoomRepository.findRoomIdsByCounselorIdAndCustomerName(counselorId, customerName)
@@ -175,7 +175,12 @@ public class RecordService {
         if (!summaryRepository.existsById(summaryId)) {
             throw new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND);
         }
-        summaryRepository.deleteById(summaryId);
+        Optional<Summary> summary = summaryRepository.findBySummaryId(summaryId);
+        Long roomId = summary.get().getCounselRoom().getRoomId();
+        int updatedRows = counselRoomRepository.updateIsHiddenByRoomId(roomId);
+        if (updatedRows == 0) {
+            throw new ApplicationException(ApplicationError.COUNSEL_ROOM_NOT_FOUND);
+        }
     }
 
     /**
@@ -260,7 +265,7 @@ public class RecordService {
 
 
         // 2. roomId와 날짜를 기준으로 roomId들 거르기 + 개수 구하기
-        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeAndRoomIds(roomIds, startDate, endDate);
+        List<Long> filteredRoomIds = counselRoomRepository.findRoomIdsByDateRangeCounselor(roomIds, startDate, endDate);
         int totalCount = filteredRoomIds.size();
 
         if (filteredRoomIds.isEmpty()) {
