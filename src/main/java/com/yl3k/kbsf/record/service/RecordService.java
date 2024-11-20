@@ -25,6 +25,7 @@ import com.yl3k.kbsf.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.security.Timestamp;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -202,7 +203,7 @@ public class RecordService {
     /**
      * 고객 메모 저장
      */
-    public void saveMemo(MemoDTO memoDTO) {
+    public MemoResponseDTO saveMemo(MemoDTO memoDTO) {
         // Summary 조회
         Summary summary = summaryRepository.findById(memoDTO.getSummaryId())
                 .orElseThrow(() -> new ApplicationException(ApplicationError.SUMMARY_NOT_FOUND));
@@ -215,8 +216,16 @@ public class RecordService {
                 .user(user)
                 .memo(memoDTO.getMemo())
                 .build();
-
         memoRepository.save(insertMemo);
+        Long nowMemoId = memoRepository.findMemoId(memoDTO.getSummaryId());
+        LocalDateTime nowMemoTime = memoRepository.findCreatedAt(memoDTO.getSummaryId());
+        MemoResponseDTO nowMemo = MemoResponseDTO.builder()
+                .memoId(nowMemoId)
+                .createdAt(nowMemoTime)
+                .build();
+
+
+        return nowMemo;
     }
 
     /**
