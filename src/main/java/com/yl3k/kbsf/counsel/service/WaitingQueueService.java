@@ -40,13 +40,14 @@ public class WaitingQueueService {
         return waitingQueueRepository.getWaitingQueues(limit);
     }
 
-    public WaitingCustomerDto assignCustomer() throws JsonProcessingException {
+    public WaitingCustomerDto assignCustomer(Integer counselorId) throws JsonProcessingException {
         WaitingCustomerDto assignedCustomer = waitingQueueRepository.assignCustomer();
         sendQueueUpdate(); // 대기열 상태 변경 후 전송
 
         // assigned customer에게 message 전송
         Map<String, String> curUser = new HashMap<>();
         curUser.put("type", "queue_assign");
+        curUser.put("counselorId", String.valueOf(counselorId));
         String jsonMessage = objectMapper.writeValueAsString(curUser);
         socketEventHandler.sendMessageToUser(assignedCustomer.getSessionId(), jsonMessage);
         return assignedCustomer;
