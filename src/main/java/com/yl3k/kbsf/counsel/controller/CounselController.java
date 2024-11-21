@@ -1,13 +1,13 @@
 package com.yl3k.kbsf.counsel.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.yl3k.kbsf.counsel.dto.CounselRoomRequestDto;
 import com.yl3k.kbsf.counsel.dto.WaitingCustomerDto;
-import com.yl3k.kbsf.counsel.service.CounselService;
+import com.yl3k.kbsf.counsel.service.CounselRoomService;
 import com.yl3k.kbsf.counsel.service.WaitingQueueService;
 import com.yl3k.kbsf.global.response.response.ApiResponse;
 import com.yl3k.kbsf.global.response.response.ErrorResponse;
 import com.yl3k.kbsf.user.entity.User;
-import com.yl3k.kbsf.user.repository.UserRepository;
 import com.yl3k.kbsf.user.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +24,47 @@ import java.util.List;
 @RequestMapping("/api/v1/counsel")
 public class CounselController {
     private final AuthService authService;
-    private final CounselService counselService;
+    private final CounselRoomService counselRoomService;
     private final WaitingQueueService waitingQueueService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<?>> createCounselRoom(@RequestBody CounselRoomRequestDto request) {
+        Long roomId = counselRoomService.createCounselRoom(request);
+        if (roomId != null) {
+            return ResponseEntity.ok(ApiResponse.success(roomId));
+        } else {
+            return ResponseEntity.status(400).body(ApiResponse.failure(new ErrorResponse(400, "Fail to make CounselRoom")));
+        }
+    }
+
+    @PatchMapping("/start/{roomId}")
+    public ResponseEntity<ApiResponse<?>> updateStartedAt(@PathVariable Long roomId) {
+        try{
+            counselRoomService.updateStartedAt(roomId);
+            return ResponseEntity.ok(ApiResponse.success(roomId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.failure(new ErrorResponse(404, "Fail to update startedAt time at " + roomId + ": " + e.getMessage())));
+        } catch (Exception e) { // 일반적인 예외 처리
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.failure(new ErrorResponse(500, "An unexpected error occurred: " + e.getMessage())));
+        }
+    }
+
+    @PatchMapping("/close/{roomId}")
+    public ResponseEntity<ApiResponse<?>> updateClosedAt(@PathVariable Long roomId) {
+        try{
+            counselRoomService.updateClosedAt(roomId);
+            return ResponseEntity.ok(ApiResponse.success(roomId));
+        } catch (IllegalArgumentException e) { // 특정 예외 처리
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.failure(new ErrorResponse(404, "Fail to update startedAt time at " + roomId + ": " + e.getMessage())));
+        } catch (Exception e) { // 일반적인 예외 처리
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.failure(new ErrorResponse(500, "An unexpected error occurred: " + e.getMessage())));
+        }
+    }
+
 
     // 고객 대기열 입장
     @PostMapping("/queue")
@@ -69,7 +108,7 @@ public class CounselController {
             return ResponseEntity.status(400).body(ApiResponse.failure(new ErrorResponse(400, "Only counselors can be assigned to the queue.")));
         }
 
-        WaitingCustomerDto assignedCustomer = waitingQueueService.assignCustomer();
+        WaitingCustomerDto assignedCustomer = waitingQueueService.assignCustomer(user.getUserId());
 
         if (assignedCustomer != null) {
             return ResponseEntity.ok(ApiResponse.success(assignedCustomer));
