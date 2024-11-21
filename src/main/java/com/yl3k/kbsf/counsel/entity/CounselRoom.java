@@ -19,17 +19,18 @@ public class CounselRoom {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long roomId;
 
-    @Column(columnDefinition = "TINYINT(1)")
-    private Boolean isWaiting;
-
     @CreationTimestamp
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Setter 추가
+    @Setter
     private LocalDateTime startedAt;
 
+    @Setter
     private LocalDateTime closedAt;
 
     @ColumnDefault("false")
     @Column(columnDefinition = "TINYINT(1)")
     private Boolean isHidden;
+
 }
