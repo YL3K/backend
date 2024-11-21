@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -122,13 +124,32 @@ public class RecordController {
         return ResponseEntity.ok(ApiResponse.success(message));
     }
 
-    @GetMapping("/counselorResponse")
-    public ResponseEntity<ApiResponse<CounselorResponseDTO>> test(
-            @RequestParam String choiceDate // "yyyy-MM" 형식으로 받음
+    /**
+     * 상담사 - 제일 최근 상담한 고객 데이터 출력
+     */
+
+    @GetMapping("/recentCustomer")
+    public ResponseEntity<ApiResponse<CustomerCurrentDTO>> getRecentCustomer(
     ){
         User user = authService.getCurrentUser();
         Integer authUserId = user.getUserId();
-        CounselorResponseDTO result = recordService.getMonthlySummary(authUserId, choiceDate);
+        CustomerCurrentDTO result = recordService.getRecentCustomer(authUserId);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 상담사 - 월별 상담한 수 출력
+     * @param choiceDate
+     */
+    @GetMapping("/monthCount")
+    public ResponseEntity<ApiResponse<Map<String,Integer>>> getMonthlySummaryCount(
+            @RequestParam String choiceDate    // "yyyy-MM" 형식으로 받음
+    ){
+        User user = authService.getCurrentUser();
+        Integer authUserId = user.getUserId();
+        Integer recentCount = recordService.getMonthlySummaryCount(authUserId, choiceDate);
+        Map<String, Integer> result = new HashMap<>();
+        result.put("count",recentCount);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

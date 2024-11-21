@@ -252,7 +252,52 @@ public class RecordService {
     }
 
 
-    public CounselorResponseDTO getMonthlySummary(Integer userId, String choiceDate){
+    public CustomerCurrentDTO getRecentCustomer(Integer userId){
+
+        // 1. 입력받은 userId 기준 roomId들 조회
+        List<Long> roomIds = userCounselRoomRepository.findRoomIdsByUserId(userId);
+        System.out.println("roomIds : " + roomIds);
+
+        if (roomIds.isEmpty()) {
+            return CustomerCurrentDTO.builder()
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+
+        // 2. roomId를 기준으로 제일 최근 데이터 하나 불러오기
+        List<CounselRoom> filteredCounselRooms = counselRoomRepository.findLatestByRoomIds(roomIds);
+
+        if (filteredCounselRooms.isEmpty()) {
+            return CustomerCurrentDTO.builder()
+                    .customerName(null)
+                    .customerDate(null)
+                    .build();
+        }
+
+        Long filteredRoomId = filteredCounselRooms.get(0).getRoomId();
+
+
+        // 조회된 RoomId로 유저 정보 구하기 + 해당 방의 종료시간 구하기
+        Optional<User> filterUser = userRepository.findCustomerByRoomId(filteredRoomId);
+        String recentUsername = filterUser.get().getUsername();
+        LocalDateTime filterdRoomTime = filteredCounselRooms.get(0).getClosedAt();
+
+        // 구한 값들 Dto에 적용
+        CustomerCurrentDTO responseCounselorDto = CustomerCurrentDTO.builder()
+                .customerName(recentUsername)
+                .customerDate(filterdRoomTime)
+                .build();
+
+        return responseCounselorDto;
+
+
+    }
+
+
+
+    public Integer getMonthlySummaryCount(Integer userId, String choiceDate){
         // 0. choiceDate를 기준으로 startDate와 endDate 구하기
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
         YearMonth yearMonth = YearMonth.parse(choiceDate, formatter);
@@ -265,11 +310,7 @@ public class RecordService {
         System.out.println("roomIds : " + roomIds);
 
         if (roomIds.isEmpty()) {
-            return CounselorResponseDTO.builder()
-                    .totalCount(0)
-                    .customerName(null)
-                    .customerDate(null)
-                    .build();
+            return 0;
         }
 
 
@@ -278,29 +319,11 @@ public class RecordService {
         int totalCount = filteredRoomIds.size();
 
         if (filteredRoomIds.isEmpty()) {
-            return CounselorResponseDTO.builder()
-                    .totalCount(0)
-                    .customerName(null)
-                    .customerDate(null)
-                    .build();
+            return 0;
         }
 
 
-        // 3. 걸러진 roomId 중 제일 최근 값을 활용하여 고객의 User정보 구하기 + roomId로 상담한 날짜 구하기
-        Long recentRoomId = filteredRoomIds.get(0);
-        LocalDateTime recentCloseDate =  counselRoomRepository.findClosedAtByRoomId(recentRoomId);
-
-        Optional<User> recentUser = userRepository.findCustomerByRoomId(recentRoomId);
-        String userName = recentUser.get().getUsername();
-
-        // 구한 값들 Dto에 적용
-        CounselorResponseDTO responseCounselorDto = CounselorResponseDTO.builder()
-                .totalCount(totalCount)
-                .customerName(userName)
-                .customerDate(recentCloseDate)
-                .build();
-
-        return responseCounselorDto;
+        return totalCount;
 
 
     }
