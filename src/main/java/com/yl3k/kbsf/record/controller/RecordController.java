@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/record")
@@ -89,13 +90,12 @@ public class RecordController {
      * @param memoDTO
      */
     @PostMapping("/memo")
-    public ResponseEntity<ApiResponse<Message>> saveMemo(@RequestBody MemoDTO memoDTO) {
+    public ResponseEntity<ApiResponse<MemoResponseDTO>> saveMemo(@RequestBody MemoDTO memoDTO) {
         User user = authService.getCurrentUser();
         Integer authUserId = user.getUserId();
         memoDTO.setUserId(authUserId);
-        recordService.saveMemo(memoDTO);
-        Message message = Message.builder().message("Memo created successfully.").build();
-        return ResponseEntity.ok(ApiResponse.success(message));
+        MemoResponseDTO response = recordService.saveMemo(memoDTO);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
