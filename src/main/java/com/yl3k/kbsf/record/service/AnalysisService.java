@@ -195,10 +195,16 @@ public class AnalysisService {
         return results.stream()
                 .map(row -> Map.of(
                         "keyword", row[0],
-                        "url", row[1],
-                        "usageCount", row[2]
+                        "description", row[1],
+                        "url", row[2],
+                        "usageCount", row[3]
                 )).toList();
 
+    }
+
+    //키워드 분석 - 유저 최근 상담 키워드
+    public List<Object[]> getKeywordsRecent(Long userId) {
+        return keywordRepository.findKeywordsWithUrlsByMostRecentRoom(userId);
     }
     
 

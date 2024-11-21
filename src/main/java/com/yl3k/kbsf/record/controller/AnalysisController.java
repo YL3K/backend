@@ -109,4 +109,15 @@ public class AnalysisController {
         List<Map<String, Object>> topKeywords = analysisService.getTop5Keywords(userId);
         return ResponseEntity.ok(topKeywords);
     }
+
+    @GetMapping("/keywords/recent/{userId}")
+    public ResponseEntity<List<Object[]>> getKeywordRecent(@PathVariable Long userId) {
+        List<Object[]> keywords = analysisService.getKeywordsRecent(userId);
+
+        if (keywords.isEmpty()) {
+            return ResponseEntity.noContent().build(); // 데이터가 없을 경우 204 반환
+        }
+
+        return ResponseEntity.ok(keywords); // 데이터가 있을 경우 200 반환
+    }
 }
