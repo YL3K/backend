@@ -52,6 +52,14 @@ public interface CounselRoomRepository extends JpaRepository<CounselRoom, Long> 
     );
 
     /**
+     * 특정 roomId들을 기준으로 조회된 데이터 날짜순 정렬
+     * @param roomIds
+     * @return 필터링 된 counselRoom 데이터
+     */
+    @Query("SELECT cr FROM CounselRoom cr WHERE cr.roomId IN :roomIds ORDER BY cr.closedAt DESC")
+    List<CounselRoom> findLatestByRoomIds(@Param("roomIds") List<Long> roomIds);
+
+    /**
      * 특정 roomId를 기반으로 상담 종료 시간(closed_at) 조회
      *
      * @param roomId 상담 방 ID
