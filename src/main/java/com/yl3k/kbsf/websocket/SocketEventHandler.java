@@ -54,8 +54,12 @@ public class SocketEventHandler extends TextWebSocketHandler {
             case "candidate":
                 handleCandidate(session, msgData, roomId);
                 break;
+            case "video_toggle" :
+                handleVideoToggle(session, msgData, roomId);
+                break;
             case "end_call":
-                handleEndCall(session, roomId);
+                System.out.println("끝이이이이이이이이이");
+                handleEndCall(session, msgData, roomId);
                 break;
             default:
                 logger.warn("Unknown type: {}", type);
@@ -93,8 +97,12 @@ public class SocketEventHandler extends TextWebSocketHandler {
         sendToRoomExcludeSelf(roomId,  msgData, session.getId());
     }
 
-    private void handleEndCall(WebSocketSession session, String roomId) {
-        sendToRoom(roomId, new SocketMessage());
+    private void handleVideoToggle(WebSocketSession session, SocketMessage msgData, String roomId) {
+        sendToRoomExcludeSelf(roomId, msgData, session.getId());
+    }
+
+    private void handleEndCall(WebSocketSession session, SocketMessage msgData, String roomId) {
+        sendToRoomExcludeSelf(roomId, msgData, roomId);
         users.values().forEach(user -> {
             if (socketRoom.get(user.getId()).equals(roomId)) {
                 try {
